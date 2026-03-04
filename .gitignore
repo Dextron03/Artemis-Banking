@@ -1,0 +1,51 @@
+## .NET / ASP.NET Core
+
+# Build output
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# User-specific settings
+*.rsuser
+*.vsp
+*.vspx
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Publish output
+publish/
+**/Properties/PublishProfiles/
+
+# Secrets / sensitive config
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+secrets.json
+
+# Logs
+*.log
+logs/
+
+# OS files
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
