@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Application\Application.csproj" />
+<<<<<<< HEAD
+=======
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+>>>>>>> develop
   </ItemGroup>
 
 </Project>
