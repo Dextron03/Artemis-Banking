@@ -8,7 +8,7 @@ namespace Domain.Entities
     public class Beneficiary
     {
         /// <summary>Identificador único del beneficiario (GUID).</summary>
-        public string Id { get; set; } = string.Empty;
+        public string Id { get; set; } = Guid.NewGuid().ToString();
 
         /// <summary>Nombre del beneficiario (dueño de la cuenta destino).</summary>
         public string Name { get; set; } = string.Empty;

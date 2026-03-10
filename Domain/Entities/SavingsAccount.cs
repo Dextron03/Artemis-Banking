@@ -8,7 +8,7 @@ namespace Domain.Entities
     public class SavingsAccount
     {
         /// <summary>Identificador único de la cuenta (GUID).</summary>
-        public string Id { get; set; } = string.Empty;
+        public string Id { get; set; } = Guid.NewGuid().ToString();
 
         /// <summary>Número de cuenta de 9 dígitos visible para el cliente.</summary>
         public string AccountNumber { get; set; } = string.Empty;

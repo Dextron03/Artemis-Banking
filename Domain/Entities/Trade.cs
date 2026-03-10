@@ -15,7 +15,7 @@ namespace Domain.Entities
     public class Trade
     {
         /// <summary>Identificador único del comercio (GUID).</summary>
-        public string Id { get; set; } = string.Empty;
+        public string Id { get; set; } = Guid.NewGuid().ToString();
 
         /// <summary>Nombre del comercio (ej: "Supermercado Nacional").</summary>
         public string Name { get; set; }
