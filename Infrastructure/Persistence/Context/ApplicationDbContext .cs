@@ -6,7 +6,7 @@ using Infrastructure.Identity.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Persistence
+namespace Infrastructure.Persistence.Context
 {
     public class ApplicationDbContext : IdentityDbContext<AppUser>
     {
