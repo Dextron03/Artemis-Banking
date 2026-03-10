@@ -5,6 +5,13 @@ using System.Threading.Tasks;
 
 namespace Domain.Entities
 {
+    public enum ConsumptionStatus
+    {
+        Aprovado,
+        Rechazado
+    }
+
+
     public class Consumption
     {
         /// <summary>Identificador único del consumo (GUID).</summary>
@@ -17,7 +24,7 @@ namespace Domain.Entities
         public decimal Amount { get; set; } = 0;
 
         /// <summary>Estado del consumo: true = APROBADO, false = RECHAZADO.</summary>
-        public bool Status { get; set; } = false;
+        public ConsumptionStatus Status { get; set; } = ConsumptionStatus.Rechazado;
 
         /// <summary>Nombre del comercio donde se realizó el consumo.</summary>
         public string CommerceName { get; set; } = string.Empty;
