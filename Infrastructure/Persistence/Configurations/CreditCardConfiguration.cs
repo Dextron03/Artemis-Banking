@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Domain.Entities;
+using Infrastructure.Identity.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,10 +15,13 @@ namespace Infrastructure.Persistence.Configurations
         {
             builder.ToTable("CreditCards", t =>
             {
-                t.HasCheckConstraint("CK_CreditCard_DebtLimit", "[AmountDebt] <= [CreditLimit");
+                t.HasCheckConstraint("CK_CreditCard_DebtLimit", "[AmountDebt] <= [CreditLimit]");
             });
 
             builder.HasKey(x => x.Id);
+
+            builder.Property(x => x.Id)
+                .HasMaxLength(36);
 
             builder.Property(c => c.IdentifierNumber)
                 .IsRequired()
@@ -29,7 +33,7 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.Property(c => c.ExpireDate)
                 .IsRequired()
-                .HasColumnType("DateTime");
+                .HasMaxLength(5);
 
             builder.Property(c => c.AmountDebt)
                 .IsRequired()
@@ -37,9 +41,15 @@ namespace Infrastructure.Persistence.Configurations
 
 
             builder.Property(c => c.CvcCode)
-                .IsRequired();
+                .IsRequired()
+                .HasMaxLength(64);
 
+            builder.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
             
+            builder.HasIndex(c => c.IdentifierNumber).IsUnique();
         }
     }
 }
