@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Domain.Entities
 {
 
-    public enum TradeStauts
+    public enum TradeStatus
     {
         Aprovado,
         Rechazado
@@ -27,7 +27,7 @@ namespace Domain.Entities
         public string PathLogo { get; set; }
 
         /// <summary>Estado del comercio: Aprobado (activo) o Rechazado (inactivo).</summary>
-        public TradeStauts Status { get; set; }
+        public TradeStatus Status { get; set; }
 
         /// <summary>ID del usuario asociado a este comercio (referencia a AppUser con rol Comercio).</summary>
         public string UserId { get; set; } = string.Empty;
