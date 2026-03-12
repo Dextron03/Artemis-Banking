@@ -47,7 +47,8 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.Property(s => s.CreatedAt)
                 .IsRequired()
-                .HasDefaultValueSql("GETDATE()");
+                .HasDefaultValueSql("GETDATE()"); // Le puse el valor por defecto ya que son fechas que indican
+                // el momento exacto en que algo ocurrio
 
             builder.HasIndex(s => s.AccountNumber).IsUnique();
 
