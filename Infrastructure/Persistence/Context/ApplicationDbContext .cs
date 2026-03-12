@@ -23,6 +23,7 @@ namespace Infrastructure.Persistence.Context
         public DbSet<Loan> Loans { get; set;}
         public DbSet<SavingsAccount> SavingsAccounts { get; set;}
         public DbSet<Share> Shares { get; set;}
+        public DbSet<Trade> Trades { get; set;}
         public DbSet<Transaction> Transactions { get; set;}
 
         protected override void OnModelCreating(ModelBuilder builder)
