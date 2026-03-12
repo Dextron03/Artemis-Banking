@@ -5,6 +5,13 @@ using System.Threading.Tasks;
 
 namespace Domain.Entities
 {
+    public enum PaymentStatusType
+    {
+        AlDia,
+        EnMora
+    }
+
+
     public class Loan
     {
         /// <summary>Identificador único del préstamo (GUID).</summary>
@@ -29,7 +36,7 @@ namespace Domain.Entities
         public bool IsActive { get; set; } = true;
 
         /// <summary>Estado de pago: "Al Día" si está al corriente, "En Mora" si tiene cuotas vencidas.</summary>
-        public string PaymentStatus { get; set; } = "Al Día";
+        public PaymentStatusType PaymentStatus { get; set; } = PaymentStatusType.AlDia;
 
         /// <summary>ID del cliente al que se le asignó el préstamo (referencia a AppUser).</summary>
         public string UserId { get; set; } = string.Empty;
@@ -39,5 +46,45 @@ namespace Domain.Entities
 
         /// <summary>Tabla de amortización: lista de todas las cuotas del préstamo.</summary>
         public IList<Share> Shares { get; set; } = new List<Share>();
+    
+        public void GenerateAmortizationTable()
+        {
+            if( LoanAmount <= 0 || TermMonths <=0 || InterestRate <= 0){
+                throw new InvalidOperationException("Faltan datos para generar la tabla."); 
+            }
+
+            double P = (double) LoanAmount; // P: Monto del prestamo (Capital)
+
+            double r = (double)(InterestRate / 100 / 12); // r = Tasa de interés periódica (mensual).
+            //  Dividimos entre 100 para decimal y entre 12 para meses.+
+
+            double n = TermMonths;
+            
+            // 2. Aplicar la fórmula del Sistema Francés
+            double mathPower = Math.Pow(1 + r, n);
+            double C = P*(r * mathPower) / (mathPower - 1); // C = Cuota constante
+
+            decimal fixedQuota = (decimal)C;
+
+            // 3. Generar las cuotas (Shares)
+            // La primera cuota es el mismo día del mes siguiente a la creación
+            DateTime nexPaymentDate = CreatedAt.AddMonths(1);
+
+            for(int i = 1; i <= n; i++)
+            {
+                Shares.Add(new Share
+                {
+                    QuotaNumber = i,
+                    ShareAmount = Math.Round(fixedQuota, 2), // Redondeamos a 2 decimales
+                    DatePay = nexPaymentDate,
+                    IsPaid = false,
+                    IsDelayed = false
+                });
+
+                nexPaymentDate = nexPaymentDate.AddMonths(1);
+            }
+
+        }
+    
     }
 }

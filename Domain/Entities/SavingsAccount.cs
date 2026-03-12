@@ -14,7 +14,7 @@ namespace Domain.Entities
         public string AccountNumber { get; set; } = string.Empty;
 
         /// <summary>Saldo disponible en la cuenta.</summary>
-        public decimal Balance { get; set; } = 0;
+        public decimal Balance { get; private set; } = 0;
 
         /// <summary>ID del usuario dueño de esta cuenta (referencia a AppUser).</summary>
         public string UserId { get; set; } = string.Empty;
@@ -30,5 +30,15 @@ namespace Domain.Entities
 
         /// <summary>Fecha y hora en que fue creada la cuenta.</summary>
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public void SetBalance(decimal balance)
+        {
+            if(balance <= 0)
+            {
+                throw new ArgumentException("El saldo debe ser mayor a 0");
+            }
+
+            Balance = balance;
+        }
     }
 }

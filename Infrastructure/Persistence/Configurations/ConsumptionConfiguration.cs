@@ -30,7 +30,8 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.Property(c => c.Status)
                 .IsRequired()
-                .HasDefaultValue(ConsumptionStatus.Rechazado);
+                .HasDefaultValue(ConsumptionStatus.Rechazado)
+                .HasConversion<string>();
 
             builder.Property(c => c.CommerceName)
                 .IsRequired()
