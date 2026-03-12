@@ -25,6 +25,8 @@ namespace Domain.Entities
 
         /// <summary>Estado de la transacción: "APROBADA" o "RECHAZADA".</summary>
         public string Status { get; set; } = string.Empty;
+        /* el cliente entre a ver sus transacciones (como pide el documento), va a querer leer algo amigable como "Transferencia a Juan Pérez" o "Pago de cuota #3 de préstamo", además de solo ver los números de cuenta. */
+        public string Concept { get; set; } = string.Empty;
 
         /// <summary>FK hacia la cuenta de ahorro a la que pertenece esta transacción.</summary>
         public string SavingAccountId { get; set; } = string.Empty;
