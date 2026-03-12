@@ -1,5 +1,7 @@
 ﻿using Domain.Interfaces;
+using Infrastructure.Identity;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -31,6 +33,7 @@ namespace Infrastructure.Repositories
 
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
         {
+
             IQueryable<T> query = _dbSet;
 
             if (includes != null)
