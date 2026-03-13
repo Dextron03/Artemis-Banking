@@ -1,15 +1,23 @@
+using Infrastructure.Identity;
+using Infrastructure.Identity.Seeds;
+using Infrastructure.Persistence;
+
 namespace ArtemisBanking
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddIdentityInfrastructure(builder.Configuration);
+            builder.Services.AddPersistenceLayerIoc(builder.Configuration);
 
             var app = builder.Build();
+
+            await app.RunIdentitySeedsAsync();
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -22,6 +30,7 @@ namespace ArtemisBanking
             app.UseHttpsRedirection();
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapStaticAssets();
