@@ -24,7 +24,7 @@ namespace Application.Services
 
         public async Task<bool> LoginAsync(LoginDto dto)
         {
-            var user = await _userManager.FindByNameAsync(dto.Email);
+            var user = await _userManager.FindByEmailAsync(dto.Email);
 
             if (user == null)
                 return false;

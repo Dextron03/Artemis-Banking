@@ -3,11 +3,13 @@ using Application.Interfaces;
 using Application.ViewModels;
 using AutoMapper;
 using Infrastructure.Identity.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArtemisBanking.Controllers
 {
+    [AllowAnonymous]
     public class AccountController : Controller
     {
         private readonly IAuthService _authService;
