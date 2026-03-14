@@ -23,10 +23,10 @@ namespace ArtemisBanking
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            // Registrar Identity
+/*             // Registrar Identity
             builder.Services.AddIdentity<AppUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddDefaultTokenProviders();
+                .AddDefaultTokenProviders(); */
 
             var app = builder.Build();
             await app.RunIdentitySeedsAsync();
@@ -38,6 +38,7 @@ namespace ArtemisBanking
 
             app.UseHttpsRedirection();
             app.UseRouting();
+
             app.UseAuthentication();
             app.UseAuthorization();
 
