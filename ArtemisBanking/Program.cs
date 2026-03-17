@@ -1,55 +1,73 @@
-using Infrastructure.Identity;
+﻿using Application.Interfaces;
+using Application.Services;
 using Infrastructure.Identity.Seeds;
+using Infrastructure.Identity;
 using Infrastructure.Persistence;
-using Infrastructure.Identity.Entities;
-using Infrastructure.Persistence.Context;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
+// ...
 
-namespace ArtemisBanking
+var builder = WebApplication.CreateBuilder(args);
+
+// 1) MVC: agrega una política global que requiera estar autenticado
+builder.Services.AddControllersWithViews(options =>
 {
-    public class Program
-    {
-        public static async Task Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+    var policy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new AuthorizeFilter(policy));
+});
 
-            builder.Services.AddControllersWithViews();
-            builder.Services.AddIdentityInfrastructure(builder.Configuration);
-            builder.Services.AddPersistenceLayerIoc(builder.Configuration);
+// 2) Infraestructura (Identity + EF, etc.)
+builder.Services.AddIdentityInfrastructure(builder.Configuration);   // ya registra el esquema Identity.Application
+builder.Services.AddPersistenceLayerIoc(builder.Configuration);
 
-            // Registrar DbContext
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("DefaultConnection")));
+// 3) Configura el cookie EXISTENTE de Identity (no lo vuelvas a registrar)
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";           // ← ruta de login
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.SlidingExpiration = true;
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+});
 
 /*             // Registrar Identity
             builder.Services.AddIdentity<AppUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders(); */
+// tus servicios
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-            var app = builder.Build();
-            await app.RunIdentitySeedsAsync();
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseExceptionHandler("/Home/Error");
-                app.UseHsts();
-            }
+var app = builder.Build();
 
-            app.UseHttpsRedirection();
-            app.UseRouting();
+app.UseHttpsRedirection();
 
-            app.UseAuthentication();
-            app.UseAuthorization();
+app.UseRouting();
 
-            app.MapStaticAssets();
+app.UseAuthentication();
 
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}")
-                .WithStaticAssets();
+app.UseAuthorization();
+// seeds
+    await app.RunIdentitySeedsAsync();
 
-            app.Run();
-        }
-    }
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Rutas
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.Run();

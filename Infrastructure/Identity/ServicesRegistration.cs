@@ -1,64 +1,43 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Infrastructure.Identity.Entities;
 using Infrastructure.Persistence.Context;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Identity
 {
-    public static class ServicesRegistration
+    public static class ServiceRegistration
     {
-        public static string ToMayusculas(this string input)
-        {
-            return input.ToUpper();
-        }
-
         public static void AddIdentityInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddIdentity<AppUser, IdentityRole>(options  => // Configuracion del motor de Identity (Usuario y Roles)
+            // 1. Configuración del motor de Identity (Esto se queda igual)
+            services.AddIdentity<AppUser, IdentityRole>(options =>
             {
-                // Configuracion de la reglas de seguridad bancaria para la contraseña
                 options.Password.RequireDigit = true;
                 options.Password.RequireLowercase = true;
-                options.Password.RequireNonAlphanumeric = true; // Exige simbolos
+                options.Password.RequireNonAlphanumeric = true;
                 options.Password.RequireUppercase = true;
                 options.Password.RequiredLength = 8;
-
-                options.User.RequireUniqueEmail = true; // Evita cuentas duplicadas
+                options.User.RequireUniqueEmail = true;
             })
-                .AddEntityFrameworkStores<ApplicationDbContext>() // Aqui hacemos que use el DbContext unificado
-                .AddDefaultTokenProviders(); // Permite generar tokens nativos
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
-            // 2. Configuracion de la Autenticacion por JWT 
-            services.AddAuthentication(options =>
+            // 2. NUEVO: Configuración de Cookies para MVC
+            services.ConfigureApplicationCookie(options =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
-            {
-                options.RequireHttpsMetadata = false; // En produccion esto debe ser true
-                options.SaveToken = false;
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    // Cosas que deben validar estrictamente
-                    ValidateIssuerSigningKey = true, // ¿La firma criptográfica coincide con nuestra clave secreta?
-                    ValidateIssuer = true, // ¿Fuimos nosotros (el banco) quienes emitimos este token?
-                    ValidateAudience = true, // ¿Este token es para esta aplicación específica?
-                    ValidateLifetime = true, // ¿El token sigue vivo o ya expiró?
-                    ClockSkew = TimeSpan.Zero, // Por defecto, .NET le da a los tokens 5 minutos extra de vida después de que expiran (por si el reloj del servidor está desincronizado). En un sistema bancario, si la sesión dura 60 minutos, al minuto 60 con 1 segundo se debe cerrar. TimeSpan.Zero elimina ese tiempo de gracia.
-
-                    // Datos del appsettings.json
-                    ValidIssuer = configuration["JWTSettings:Issuer"],
-                    ValidAudience = configuration["JWTSettings:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWTSettings:Key"]!))
-                };
+                // ¿A dónde redirigir si alguien sin login intenta entrar a una página protegida?
+                options.LoginPath = "/Account/Login"; 
+                
+                // ¿A dónde redirigir si un Cliente intenta entrar a una vista de Cajero?
+                options.AccessDeniedPath = "/Account/AccessDenied"; 
+                
+                // Tiempo de vida de la sesión (ej. 60 minutos)
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(60); 
+                
+                // Si el usuario está usando el sistema, la cookie extiende su tiempo de vida
+                options.SlidingExpiration = true; 
             });
         }
     }

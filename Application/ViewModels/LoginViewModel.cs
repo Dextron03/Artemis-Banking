@@ -4,9 +4,9 @@ namespace Application.ViewModels
 {
     public class LoginViewModel
     {
-        [Required(ErrorMessage = "El correo es obligatorio")]
-        [EmailAddress]
-        public string Email { get; set; } = null!;
+        [Required(ErrorMessage = "Debes colocar un nombre de usuario")]
+        [DataType(DataType.Text)]
+        public string UserName { get; set; } = null!;
 
         [Required(ErrorMessage = "La contraseña es obligatoria")]
         [DataType(DataType.Password)]

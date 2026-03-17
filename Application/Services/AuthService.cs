@@ -24,7 +24,7 @@ namespace Application.Services
 
         public async Task<bool> LoginAsync(LoginDto dto)
         {
-            var user = await _userManager.FindByNameAsync(dto.Email);
+            var user = await _userManager.FindByNameAsync(dto.UserName);
 
             if (user == null)
                 return false;
@@ -33,7 +33,7 @@ namespace Application.Services
                 throw new Exception("Cuenta inactiva");
 
             var result = await _signInManager.PasswordSignInAsync(
-                dto.Email,
+                dto.UserName,
                 dto.Password,
                 false,
                 false
