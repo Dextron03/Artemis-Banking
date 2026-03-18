@@ -85,6 +85,12 @@ namespace Domain.Entities
             }
 
         }
-    
+        private static readonly Random _random = new Random();
+
+        public static string GenerateUniqueNumber()
+        {
+            return _random.Next(100000000, 999999999).ToString();
+        }
+
     }
 }

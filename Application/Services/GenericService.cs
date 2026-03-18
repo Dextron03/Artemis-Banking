@@ -19,7 +19,7 @@ namespace Application.Services
             _repository = repository;
         }
 
-        public virtual async Task<T> GetByIdAsync(int id)
+        public virtual async Task<T> GetByIdAsync(string id)
         {
             return await _repository.GetByIdAsync(id);
         }

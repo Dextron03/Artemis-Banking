@@ -1,5 +1,4 @@
-﻿using System.Net.Mail;
-using Shared.Settings;
+﻿using Shared.Settings;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using MailKit.Net.Smtp;

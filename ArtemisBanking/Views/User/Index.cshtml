@@ -1,0 +1,56 @@
+﻿@using Application.ViewModels
+@model List<UserViewModel>
+
+<h2>Gestión de Usuarios</h2>
+
+<a asp-action="Create">+ Nuevo Usuario</a>
+
+<form method="get">
+    <select name="role" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        <option value="Administrador">Administrador</option>
+        <option value="Cajero">Cajero</option>
+        <option value="Cliente">Cliente</option>
+    </select>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Cédula</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.Username</td>
+                <td>@user.Cedula</td>
+                <td>@user.FullName</td>
+                <td>@user.Email</td>
+                <td>@user.Role</td>
+
+                <td>
+                    @(user.IsActive ? "Activo" : "Inactivo")
+                </td>
+
+                <td>
+                    <a asp-action="Edit" asp-route-id="@user.Id">Editar</a>
+
+                    <a asp-action="Toggle"
+                       asp-route-id="@user.Id"
+                       onclick="return confirm('¿Seguro?')">
+                        Cambiar estado
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

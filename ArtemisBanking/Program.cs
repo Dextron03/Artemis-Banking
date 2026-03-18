@@ -1,8 +1,10 @@
 ﻿using Application.Interfaces;
 using Application.Services;
-using Infrastructure.Identity.Seeds;
+using Domain.Interfaces;
 using Infrastructure.Identity;
+using Infrastructure.Identity.Seeds;
 using Infrastructure.Persistence;
+using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 // ...
@@ -39,6 +41,10 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<UserService>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
@@ -68,6 +74,6 @@ app.UseAuthorization();
 // Rutas
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.Run();

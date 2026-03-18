@@ -64,6 +64,10 @@ namespace Domain.Entities
             if(string.IsNullOrWhiteSpace(cvcCode) || cvcCode.Length != 3)
                 throw new ArgumentException("El código CVC debe tener 3 dígitos.");
 
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(cvcCode));
+            CvcCode = Convert.ToBase64String(hash);
+
             // CvcCode = HashSha256(cvcCode); TODO: HACER UN METODO PARA HASHEAR EN 256
         }
     }

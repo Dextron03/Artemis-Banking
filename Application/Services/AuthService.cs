@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Application.DTOs;
+using Application.DTOs.AuthResponse;
+using Application.DTOs.Login;
 using Application.Interfaces;
 using Infrastructure.Identity.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -22,24 +23,39 @@ namespace Application.Services
             _userManager = userManager;
         }
 
-        public async Task<bool> LoginAsync(LoginDto dto)
+        public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
+            var response = new AuthResponseDto();
+
             var user = await _userManager.FindByNameAsync(dto.UserName);
 
             if (user == null)
-                return false;
+            {
+                response.HasError = true;
+                response.Error = "Usuario no encontrado";
+                return response;
+            }
 
-            if (!user.IsActive)
-                throw new Exception("Cuenta inactiva");
+            var result = await _signInManager.PasswordSignInAsync(user, dto.Password, false, false);
 
-            var result = await _signInManager.PasswordSignInAsync(
-                dto.UserName,
-                dto.Password,
-                false,
-                false
-            );
+            if (!result.Succeeded)
+            {
+                response.HasError = true;
+                response.Error = "Credenciales incorrectas";
+                return response;
+            }
 
-            return result.Succeeded;
+            var roles = await _userManager.GetRolesAsync(user);
+
+            response.UserId = user.Id;
+            response.Roles = roles;
+
+            return response;
+        }
+
+        public async Task LogoutAsync()
+        {
+            await _signInManager.SignOutAsync(); 
         }
     }
 }

@@ -1,0 +1,63 @@
+﻿@model Application.ViewModels.DashboardAdminViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container mt-4">
+
+    <h2>Dashboard Administrador</h2>
+
+    <hr />
+
+    <div class="row">
+
+        <div class="col-md-4">
+            <p><strong>Total Transacciones:</strong> @Model.TotalTransactions</p>
+            <p><strong>Transacciones Hoy:</strong> @Model.TransactionsToday</p>
+        </div>
+
+        <div class="col-md-4">
+            <p><strong>Total Pagos:</strong> @Model.TotalPayments</p>
+            <p><strong>Pagos Hoy:</strong> @Model.PaymentsToday</p>
+        </div>
+
+        <div class="col-md-4">
+            <p><strong>Clientes Activos:</strong> @Model.ActiveClients</p>
+            <p><strong>Clientes Inactivos:</strong> @Model.InactiveClients</p>
+        </div>
+
+    </div>
+
+    <hr />
+
+    <div class="row">
+
+        <div class="col-md-4">
+            <p><strong>Préstamos Activos:</strong> @Model.ActiveLoans</p>
+        </div>
+
+        <div class="col-md-4">
+            <p><strong>Tarjetas Activas:</strong> @Model.ActiveCreditCards</p>
+        </div>
+
+        <div class="col-md-4">
+            <p><strong>Cuentas de Ahorro:</strong> @Model.TotalSavingsAccounts</p>
+        </div>
+
+    </div>
+
+    <hr />
+
+    <div class="row">
+        <div class="col-md-12">
+            <p><strong>Total Productos:</strong> @Model.TotalProducts</p>
+            <p><strong>Promedio Deuda por Cliente:</strong> $ @Model.AverageDebtPerClient.ToString("N2")</p>
+        </div>
+    </div>
+
+    <form asp-controller="Account" asp-action="Logout" method="post">
+        <button type="submit" class="btn btn-danger mt-2">Cerrar Sesión</button>
+    </form>
+
+</div>

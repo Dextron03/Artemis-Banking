@@ -33,9 +33,9 @@ namespace Domain.Entities
 
         public void SetBalance(decimal balance)
         {
-            if(balance <= 0)
+            if(balance < 0)
             {
-                throw new ArgumentException("El saldo debe ser mayor a 0");
+                throw new ArgumentException("El saldo debe ser negativo");
             }
 
             Balance = balance;

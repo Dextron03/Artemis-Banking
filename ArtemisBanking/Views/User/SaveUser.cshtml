@@ -1,0 +1,46 @@
+﻿@using Application.ViewModels
+@model SaveUserViewModel
+
+<h2>@(Model.Id == null ? "Crear" : "Editar") Usuario</h2>
+
+<form asp-action="@(Model.Id == null ? "Create" : "Edit")">
+
+    <input asp-for="FirstName" placeholder="Nombre" />
+    <input asp-for="LastName" placeholder="Apellido" />
+    <input asp-for="Cedula" placeholder="Cédula" />
+    <input asp-for="Email" placeholder="Correo" />
+
+    @if (Model.Id == null)
+    {
+        <input asp-for="Username" placeholder="Usuario" />
+        <input asp-for="Password" type="password" placeholder="Contraseña" />
+        <input asp-for="ConfirmPassword" type="password" placeholder="Confirmar contraseña" />
+
+        <select asp-for="Role" asp-items="Model.Roles" id="roleSelect">
+            <option value="">Seleccione un rol</option>
+        </select>
+
+        <div id="montoDiv" style="display:none;">
+            <input asp-for="InitialAmount" placeholder="Monto inicial" />
+        </div>
+    }
+    else
+    {
+        <input asp-for="Username" />
+        <input asp-for="Password" type="password" placeholder="Nueva contraseña" />
+        <input asp-for="AdditionalAmount" placeholder="Monto adicional" />
+    }
+
+    <button type="submit">Guardar</button>
+</form>
+
+<script>
+    const role = document.getElementById("roleSelect");
+    const monto = document.getElementById("montoDiv");
+
+    if (role) {
+        role.addEventListener("change", function () {
+            monto.style.display = this.value === "Cliente" ? "block" : "none";
+        });
+    }
+</script>

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Application.DTOs;
+using Application.DTOs.Dashboard;
+using Application.DTOs.Login;
 using Application.ViewModels;
 using AutoMapper;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +18,8 @@ namespace Application.Mappings
         {
             // AUTH
             CreateMap<LoginViewModel, LoginDto>();
+            //Dashboard Admin
+            CreateMap<DashboardAdminDto, DashboardAdminViewModel>();
         }
     }
 }
