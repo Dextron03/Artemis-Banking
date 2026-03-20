@@ -3,7 +3,7 @@
 
 <h2>@(Model.Id == null ? "Crear" : "Editar") Usuario</h2>
 
-<form asp-action="@(Model.Id == null ? "Create" : "Edit")">
+<form asp-action="@(Model.Id == null ? "Create" : "Edit")" method="post">
 
     <input asp-for="FirstName" placeholder="Nombre" />
     <input asp-for="LastName" placeholder="Apellido" />

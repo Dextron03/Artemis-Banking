@@ -1,0 +1,32 @@
+﻿@model Application.ViewModels.CreateLoanViewModel
+
+<h2>Crear Préstamo</h2>
+
+<form method="post">
+    <input type="hidden" asp-for="UserId" />
+
+    <label>Monto</label>
+    <input asp-for="Amount" class="form-control" />
+
+    <label>Meses</label>
+    <select asp-for="Months" class="form-control">
+        <option>6</option>
+        <option>12</option>
+        <option>18</option>
+        <option>24</option>
+        <option>30</option>
+        <option>36</option>
+        <option>42</option>
+        <option>48</option>
+        <option>54</option>
+        <option>60</option>
+    </select>
+
+    <label>Tasa</label>
+    <input asp-for="InterestRate" class="form-control" />
+
+    <br />
+
+    <button class="btn btn-primary">Crear</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>

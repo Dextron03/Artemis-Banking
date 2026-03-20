@@ -1,0 +1,23 @@
+﻿@{
+    var type = TempData["Type"]?.ToString();
+}
+
+<h2>Advertencia</h2>
+
+@if (type == "RIESGO_ACTUAL")
+{
+    <p class="text-danger">
+        Este cliente ya tiene una deuda superior al promedio del sistema.
+    </p>
+}
+else
+{
+    <p class="text-warning">
+        Este préstamo hará que el cliente supere el promedio de deuda.
+    </p>
+}
+
+<form method="post" asp-action="ConfirmHighRisk">
+    <button class="btn btn-danger">Confirmar</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260313234507_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260319061711_AddCreateByUserIdToLoan")]
+    partial class AddCreateByUserIdToLoan
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -151,6 +151,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("IdentifierNumber")
                         .IsRequired()
                         .HasMaxLength(9)
@@ -163,6 +167,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal>("LoanAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MonthlyPayment")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("OutstandingAmount")

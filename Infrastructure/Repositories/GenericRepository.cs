@@ -43,5 +43,17 @@ namespace Infrastructure.Repositories
 
             return await query.Where(predicate).ToListAsync();
         }
+
+        public async Task<List<T>> GetAllAsync(params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (includes != null && includes.Any())
+            {
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
+            }
+
+            return await query.ToListAsync();
+        }
     }
 }
