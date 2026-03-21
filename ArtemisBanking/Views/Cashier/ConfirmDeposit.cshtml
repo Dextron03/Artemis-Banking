@@ -1,0 +1,37 @@
+@page
+@model Application.ViewModels.ConfirmDepositViewModel;
+@{
+    ViewData["Title"] = "Confirmar Depósito";
+}
+
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-warning shadow-sm">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    <h4 class="mb-0">⚠️ Confirmar Transacción</h4>
+                </div>
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-4">¿Está seguro de realizar este depósito?</h5>
+                    
+                    <div class="alert alert-info text-start">
+                        <p class="mb-1"><strong>Titular de la cuenta:</strong> @Model.ClientName @Model.ClientLastName</p>
+                        <p class="mb-1"><strong>Cuenta Destino:</strong> @Model.AccountNumber</p>
+                        <p class="mb-0"><strong>Monto a depositar:</strong> RD$ @Model.Amount.ToString("N2")</p>
+                    </div>
+
+                    <form asp-controller="Cashier" asp-action="ProcessDeposit" method="post">
+                        <input type="hidden" asp-for="AccountNumber" />
+                        <input type="hidden" asp-for="Amount" />
+                        
+                        <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-center">
+                            <button type="submit" class="btn btn-success px-4">Sí, Confirmar Depósito</button>
+                            <a asp-controller="Cashier" asp-action="Index" class="btn btn-danger px-4">Cancelar Operación</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
