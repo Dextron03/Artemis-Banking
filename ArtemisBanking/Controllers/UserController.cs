@@ -5,6 +5,7 @@ using Infrastructure.Identity.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Net;
 
 namespace ArtemisBanking.Controllers
 {
@@ -41,11 +42,11 @@ namespace ArtemisBanking.Controllers
                 {
                     Id = u.Id,
                     Username = u.UserName,
-                    FullName = u.FirtsName + " " + u.LastName,
+                    FullName = $"{u.FirtsName} {u.LastName}",
                     Email = u.Email,
-                    Cedula = u.IdentityNumber,
+                    Cedula = string.IsNullOrEmpty(u.IdentityNumber) ? "N/A" : u.IdentityNumber,
                     Role = userRole,
-                    IsActive = u.LockoutEnd == null
+                    IsActive = u.LockoutEnd == null || u.LockoutEnd <= DateTimeOffset.Now
                 });
             }
 
@@ -95,9 +96,11 @@ namespace ArtemisBanking.Controllers
                 vm.LastName,
                 vm.Email,
                 vm.Username,
+                vm.Cedula,
                 vm.Password,
                 vm.Role,
-                vm.InitialAmount ?? 0
+                vm.InitialAmount ?? 0,
+                Url 
             );
 
             return RedirectToAction("Index");
@@ -156,6 +159,24 @@ namespace ArtemisBanking.Controllers
                     Value = r.ToString(),
                     Text = r.ToString()
                 }).ToList();
+        }
+
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            var decodedToken = WebUtility.UrlDecode(token);
+
+            var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+
+            if (!result.Succeeded)
+                return BadRequest("Error al confirmar el correo");
+
+            user.LockoutEnd = null;
+            await _userManager.UpdateAsync(user);
+
+            return Content("Cuenta activada correctamente");
         }
     }
 }

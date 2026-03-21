@@ -1,0 +1,35 @@
+﻿@model Application.ViewModels.SelectClientViewModel
+
+<h2>Seleccionar Cliente</h2>
+
+<p><strong>Deuda promedio:</strong> @Model.AverageDebt.ToString("C")</p>
+
+<form method="post" asp-action="SelectClientPost">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Cédula</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Deuda</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Model.Clients)
+            {
+                <tr>
+                    <td>@c.IdentityNumber</td>
+                    <td>@c.FirtsName @c.LastName</td>
+                    <td>@c.Email</td>
+                    <td>@c.Debt.ToString("C")</td>
+                    <td>
+                        <input type="radio" name="userId" value="@c.Id" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <button class="btn btn-success">Siguiente paso</button>
+</form>

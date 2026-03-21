@@ -44,6 +44,11 @@ namespace Domain.Entities
         /// <summary>Fecha y hora en que fue creado/asignado el préstamo.</summary>
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        public decimal MonthlyPayment { get; set; }
+
+        // <sumary> ID del administrador que asigna el préstamo
+        public string CreatedByUserId { get; set; }
+
         /// <summary>Tabla de amortización: lista de todas las cuotas del préstamo.</summary>
         public IList<Share> Shares { get; set; } = new List<Share>();
     
@@ -63,6 +68,8 @@ namespace Domain.Entities
             // 2. Aplicar la fórmula del Sistema Francés
             double mathPower = Math.Pow(1 + r, n);
             double C = P*(r * mathPower) / (mathPower - 1); // C = Cuota constante
+
+            MonthlyPayment = Math.Round((decimal)C, 2);
 
             decimal fixedQuota = (decimal)C;
 

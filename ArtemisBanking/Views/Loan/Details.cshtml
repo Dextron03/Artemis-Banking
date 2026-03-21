@@ -1,0 +1,29 @@
+﻿@model List<Domain.Entities.Share>
+
+<h2>Tabla de Amortización</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Fecha</th>
+            <th>Monto</th>
+            <th>Pagado</th>
+            <th>Atrasado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td>@s.QuotaNumber</td>
+                <td>@s.DatePay.ToShortDateString()</td>
+                <td>@s.ShareAmount.ToString("C")</td>
+                <td>@(s.IsPaid ? "Sí" : "No")</td>
+                <td>@(s.IsDelayed ? "Sí" : "No")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Index" class="btn btn-secondary">Volver</a>

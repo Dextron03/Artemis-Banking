@@ -148,6 +148,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("IdentifierNumber")
                         .IsRequired()
                         .HasMaxLength(9)
@@ -160,6 +164,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal>("LoanAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MonthlyPayment")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("OutstandingAmount")

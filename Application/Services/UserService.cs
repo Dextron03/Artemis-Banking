@@ -2,6 +2,8 @@
 using Domain.Interfaces;
 using Infrastructure.Identity.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Shared.Services;
 
 namespace Application.Services
 {
@@ -10,15 +12,17 @@ namespace Application.Services
         private readonly UserManager<AppUser> _userManager;
         private readonly IGenericRepository<SavingsAccount> _accountRepo;
         private static readonly Random _random = new Random();
+        private readonly IEmailService _emailService;
 
         public UserService(
             UserManager<AppUser> userManager,
-            IGenericRepository<SavingsAccount> accountRepo)
+            IGenericRepository<SavingsAccount> accountRepo,
+            IEmailService emailService)
         {
             _userManager = userManager;
             _accountRepo = accountRepo;
+            _emailService = emailService;
         }
-
         private async Task<string> GenerateAccountNumber()
         {
             string number;
@@ -40,9 +44,12 @@ namespace Application.Services
             string lastName,
             string email,
             string username,
+            string cedula,
             string password,
             string role,
-            decimal initialAmount = 0)
+            decimal initialAmount,
+            IUrlHelper urlHelper 
+            )
         {
             var existingEmail = await _userManager.FindByEmailAsync(email);
             if (existingEmail != null)
@@ -56,13 +63,13 @@ namespace Application.Services
                 FirtsName = firstName,
                 LastName = lastName,
                 Email = email,
+                IdentityNumber = cedula,
                 UserName = username,
                 LockoutEnd = DateTimeOffset.MaxValue,
                 EmailConfirmed = false
             };
 
             var result = await _userManager.CreateAsync(user, password);
-
             if (!result.Succeeded)
                 throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
 
@@ -82,6 +89,24 @@ namespace Application.Services
                 await _accountRepo.AddAsync(account);
                 await _accountRepo.SaveChangesAsync();
             }
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = System.Net.WebUtility.UrlEncode(token);
+
+            var link = urlHelper.Action(
+                "ConfirmEmail",
+                "User",
+                new { userId = user.Id, token = encodedToken },
+                urlHelper.ActionContext.HttpContext.Request.Scheme
+            );
+
+            await _emailService.SendEmailAsync(
+                user.Email,
+                "Activar cuenta",
+                $"<h3>Bienvenido a Artemis Banking</h3>" +
+                $"<p>Haz clic en el siguiente enlace para activar tu cuenta:</p>" +
+                $"<a href='{link}'>Activar cuenta</a>"
+            );
         }
 
         public async Task ToggleUserStatus(string userId)
