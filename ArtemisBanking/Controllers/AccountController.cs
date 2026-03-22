@@ -50,7 +50,7 @@ namespace ArtemisBanking.Controllers
             if (result.Roles.Contains("Cliente"))
                 return RedirectToAction("Index", "DashboardCliente");
             if (result.Roles.Contains("Cajero"))
-                return RedirectToAction("Index", "DashboardCajero");
+                return RedirectToAction("Index", "Cashier");
 
             return RedirectToAction("Welcome", "Dashboard");
         }

@@ -42,5 +42,26 @@ namespace ArtemisBanking.Controllers
 
             return View("ConfirmDeposit", confirmVm);
         }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessDeposit(DepositViewModel vm)
+        {
+            var result = await _cashierService.ProcessDepositAsync(vm.AccountNumber, vm.Amount);
+
+            if (!result)
+            {
+                ModelState.AddModelError("", "Ocurrió un error al procesar el depósito en la base de datos.");
+                return View("ConfirmDeposit", vm);
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        public IActionResult Index()
+        {
+            // Por ahora esto cargará una vista vacía, 
+            // luego pondremos el Dashboard del Cajero aquí.
+            return View(); 
+        }
     }
 }

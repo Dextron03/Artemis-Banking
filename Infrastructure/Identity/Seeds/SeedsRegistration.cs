@@ -23,11 +23,13 @@ namespace Infrastructure.Identity.Seeds
                 {
                     // 1. Pedimos prestados los "Managers" de Identity al contenedor
                     var userManager = services.GetRequiredService<UserManager<AppUser>>();
+                    var userCashier = services.GetRequiredService<UserManager<AppUser>>();
                     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
                     // 2. Ejecutamos tus clases de Seeding
                     await DefaultRoles.SeedAsync(roleManager);
                     await DefaultAdminUser.SeedAsync(userManager);
+                    await DefaultCashierUser.SeedAsync(userCashier);
                 }
                 catch (Exception ex)
                 {

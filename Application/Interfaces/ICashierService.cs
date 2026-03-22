@@ -9,5 +9,6 @@ namespace Application.Interfaces
     public interface ICashierService
     {
         public Task<ConfirmDepositViewModel> ValidateDepositAsync(DepositViewModel vm);
+        public Task<bool> ProcessDepositAsync(string accountNumber, decimal amount);
     }
 }

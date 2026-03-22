@@ -1,15 +1,10 @@
-﻿using Application.Interfaces;
-using Application.Services;
-using Domain.Interfaces;
+﻿using Application;
 using Infrastructure.Identity;
 using Infrastructure.Identity.Seeds;
 using Infrastructure.Persistence;
-using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using Shared.Services;
-using Shared.Settings;
-// ...
+using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,31 +20,8 @@ builder.Services.AddControllersWithViews(options =>
 // 2) Infraestructura (Identity + EF, etc.)
 builder.Services.AddIdentityInfrastructure(builder.Configuration);   // ya registra el esquema Identity.Application
 builder.Services.AddPersistenceLayerIoc(builder.Configuration);
-
-// 3) Configura el cookie EXISTENTE de Identity (no lo vuelvas a registrar)
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";           // ← ruta de login
-    options.AccessDeniedPath = "/Account/AccessDenied";
-    options.SlidingExpiration = true;
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-});
-
-/*             // Registrar Identity
-            builder.Services.AddIdentity<AppUser, IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddDefaultTokenProviders(); */
-// tus servicios
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<LoanService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddApplicationLayer(builder.Configuration);
+builder.Services.AddSharedLeyer(builder.Configuration);
 
 var app = builder.Build();
 
