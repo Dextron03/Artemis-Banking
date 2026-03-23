@@ -57,6 +57,48 @@ namespace ArtemisBanking.Controllers
             return RedirectToAction("Index");
         }
 
+        [HttpGet]
+        public IActionResult Withdrawal()
+        {
+            return View(new WithdrawalViewModel());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Withdrawal(WithdrawalViewModel vm)
+        {
+            if(!ModelState.IsValid) return View(vm);
+
+            var confirmVm = await _cashierService.ValidateWithdrawalAsync(vm);
+
+            if(confirmVm == null)
+            {
+                ModelState.AddModelError("", "El número de cuenta ingresado no es válido o está inactivo.");
+                return View(vm);
+            }
+
+            if (confirmVm.HasInsufficientFunds)
+            {
+                ModelState.AddModelError("", $"Fondos insuficientes. El monto ingresado (RD$ {vm.Amount}) supera el balance actual de la cuenta.");
+                return View(vm);
+            }
+
+            return View("ConfirmWithdrawal", confirmVm);
+            
+        }
+        
+        [HttpPost]
+        public async Task<IActionResult> ProcessWithdrawal(WithdrawalViewModel vm)
+        {
+            var result = await _cashierService.ProcessDepositAsync(vm.AccountNumber, vm.Amount);
+
+            if (!result)
+            {
+                ModelState.AddModelError("", "Ocurrió un error al procesar el retiro (posibles fondos insuficientes).");
+                return View("ConfirmWithdrawal", vm);
+            }
+            return RedirectToAction("Index");
+        }
+
         public IActionResult Index()
         {
             // Por ahora esto cargará una vista vacía, 
