@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Domain.Entities
@@ -30,6 +31,8 @@ namespace Domain.Entities
 
         /// <summary>ID del cliente dueño de la tarjeta (referencia a AppUser).</summary>
         public string UserId { get; set; } = string.Empty;
+        /// <summary> ID del administrador que asignó la tarjeta (referencia a AppUser).</summary>
+        public string AdminId { get; set; } = string.Empty;
 
         /// <summary>Lista de consumos/pagos realizados con esta tarjeta.</summary>
         public IList<Consumption> Consumptions { get; set; } = new List<Consumption>();
@@ -69,6 +72,22 @@ namespace Domain.Entities
             CvcCode = Convert.ToBase64String(hash);
 
             // CvcCode = HashSha256(cvcCode); TODO: HACER UN METODO PARA HASHEAR EN 256
+        }
+
+        public void UpdateCreditLimit(decimal newLimit)
+        {
+            if (newLimit < AmountDebt)
+                throw new InvalidOperationException(
+                    "El nuevo límite no puede ser inferior al monto actual de la deuda.");
+            CreditLimit = newLimit;
+        }
+
+        public void Cancel()
+        {
+            if (AmountDebt > 0)
+                throw new InvalidOperationException(
+                    "Para cancelar esta tarjeta, el cliente debe saldar la totalidad de la deuda pendiente.");
+            IsActive = false;
         }
     }
 }

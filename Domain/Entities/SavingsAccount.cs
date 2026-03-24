@@ -18,7 +18,8 @@ namespace Domain.Entities
 
         /// <summary>ID del usuario dueño de esta cuenta (referencia a AppUser).</summary>
         public string UserId { get; set; } = string.Empty;
-
+        /// <summary>ID del administrador que creó esta cuenta (aplica a cuentas secundarias).</summary>
+        public string? AdminId { get; set; }
         /// <summary>Indica si esta cuenta es la cuenta principal del cliente (solo puede tener una).</summary>
         public bool IsPrincipal { get; set; } = false;
 
@@ -35,7 +36,7 @@ namespace Domain.Entities
         {
             if(balance < 0)
             {
-                throw new ArgumentException("El saldo debe ser negativo");
+                throw new ArgumentException("El saldo no debe ser negativo");
             }
 
             Balance = balance;

@@ -1,0 +1,104 @@
+﻿@model ArtemisBanking.ViewModels.AssignCreditCardViewModel
+@{
+    ViewData["Title"] = "Asignar Tarjeta Paso 2";
+    var expiryPreview = DateTime.Now.AddYears(3).ToString("MM/yy");
+}
+
+<div class="container py-4" style="max-width:600px">
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-credit-card-2-front text-primary me-2"></i>Configurar Límite
+            </h2>
+            <span class="text-muted small">Paso 2 de 2 — Asignación de tarjeta de crédito</span>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </a>
+    </div>
+
+    <nav aria-label="Pasos" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item text-success">
+                <i class="bi bi-1-circle-fill me-1"></i>Seleccionar Cliente
+            </li>
+            <li class="breadcrumb-item active fw-bold text-primary">
+                <i class="bi bi-2-circle-fill me-1"></i>Configurar Límite
+            </li>
+        </ol>
+    </nav>
+
+    <div class="alert alert-primary d-flex align-items-center gap-3 mb-4">
+        <i class="bi bi-person-circle fs-4 flex-shrink-0"></i>
+        <div>
+            <span class="small text-uppercase fw-semibold d-block" style="letter-spacing:.05em">Cliente seleccionado</span>
+            <span class="fw-bold fs-6">@Model.ClientFullName</span>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-sliders me-2 text-primary"></i>Límite de Crédito
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <form method="post" asp-action="AssignStep2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="UserId" />
+                <input type="hidden" asp-for="ClientFullName" />
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="mb-4">
+                    <label asp-for="CreditLimit" class="form-label fw-semibold">
+                        <i class="bi bi-cash-coin me-1"></i>Límite de crédito
+                    </label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-primary text-white fw-bold">$</span>
+                        <input asp-for="CreditLimit" class="form-control"
+                               type="number" step="0.01" min="1" placeholder="0.00" />
+                    </div>
+                    <span asp-validation-for="CreditLimit" class="text-danger small"></span>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        CVC y número de tarjeta se generan automáticamente.
+                        Fecha de expiración: <strong>@expiryPreview</strong>
+                    </div>
+                </div>
+
+                <div class="bg-dark text-white rounded-3 p-4 mb-4 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 end-0 opacity-10" style="width:150px;height:150px;background:radial-gradient(circle,#fff,transparent);transform:translate(30%,-30%)"></div>
+                    <div class="text-white-50 small text-uppercase mb-3" style="letter-spacing:.1em">Vista previa de la tarjeta</div>
+                    <div class="font-monospace fs-5 mb-3 fw-bold">**** **** **** ****</div>
+                    <div class="d-flex justify-content-between align-items-end">
+                        <div>
+                            <div class="text-white-50 small text-uppercase" style="letter-spacing:.08em">Titular</div>
+                            <div class="fw-semibold">@Model.ClientFullName.ToUpper()</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-white-50 small text-uppercase" style="letter-spacing:.08em">Vence</div>
+                            <div class="fw-bold font-monospace">@expiryPreview</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-end">
+                    <a asp-action="AssignStep1" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Regresar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i> Asignar Tarjeta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

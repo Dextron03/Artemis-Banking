@@ -52,6 +52,10 @@ namespace Infrastructure.Persistence.Configurations
 
             builder.HasIndex(s => s.AccountNumber).IsUnique();
 
+            builder.Property(s => s.AdminId)
+                .HasMaxLength(36)
+                .IsRequired(false);
+
         }
     }
 }

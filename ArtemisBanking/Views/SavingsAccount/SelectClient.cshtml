@@ -1,0 +1,101 @@
+﻿@model Application.ViewModels.SavingsAccount.SelectSavingsClientViewModel
+@{
+    ViewData["Title"] = "Seleccionar Cliente";
+}
+
+<div class="container-fluid py-4">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </a>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-person-check me-2 text-primary"></i>
+            Asignar Cuenta de Ahorro — Seleccionar Cliente
+        </h2>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="SelectClient" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Buscar cliente por cédula</label>
+                    <input type="text" name="searchIdentityNumber"
+                           value="@Model.SearchIdentityNumber"
+                           class="form-control"
+                           placeholder="Ingrese el número de cédula" />
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i> Buscar
+                    </button>
+                    <a asp-action="SelectClient" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <form method="post" asp-action="SelectClient">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="SearchIdentityNumber" value="@Model.SearchIdentityNumber" />
+
+        @if (!Model.Clients.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+                No se encontraron clientes activos.
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4" style="width:56px;">Sel.</th>
+                                    <th>Cédula</th>
+                                    <th>Nombre y Apellido</th>
+                                    <th>Correo Electrónico</th>
+                                    <th>Deuda Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var c in Model.Clients)
+                                {
+                                    <tr style="cursor:pointer;"
+                                        onclick="document.getElementById('cli_@c.Id').checked=true;">
+                                        <td class="ps-4">
+                                            <input class="form-check-input"
+                                                   type="radio"
+                                                   asp-for="SelectedClientId"
+                                                   value="@c.Id"
+                                                   id="cli_@c.Id" />
+                                        </td>
+                                        <td class="font-monospace">@c.IdentityNumber</td>
+                                        <td>@c.FullName</td>
+                                        <td>@c.Email</td>
+                                        <td class="@(c.TotalDebt > 0 ? "text-danger fw-semibold" : "text-muted")">
+                                            @c.TotalDebt.ToString("C2")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            @Html.ValidationMessage("SelectedClientId", new { @class = "text-danger d-block mb-3" })
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary btn-lg px-5">
+                    Siguiente paso <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+            </div>
+        }
+    </form>
+</div>

@@ -1,5 +1,5 @@
 ﻿using Application.Interfaces;
-using Application.ViewModels;
+using Application.ViewModels.DashboardAdmin;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

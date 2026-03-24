@@ -36,6 +36,12 @@ namespace Infrastructure.Persistence
             }
 
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ICreditCardRepository, CreditCardRepository>();
+            services.AddScoped<ISavingsAccountRepository, SavingsAccountRepository>();
+            services.AddScoped<ITransactionRepository, TransactionRepository>();
+            services.AddScoped<ILoanRepository, LoanRepository>();
+            services.AddScoped<IShareRepository, ShareRepository>();
 
         }
     }

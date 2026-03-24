@@ -1,4 +1,6 @@
 ﻿@using Application.ViewModels
+@using Application.ViewModels.Login
+@using Application.ViewModels.User
 @model SaveUserViewModel
 
 <h2>@(Model.Id == null ? "Crear" : "Editar") Usuario</h2>
@@ -6,15 +8,22 @@
 <form asp-action="@(Model.Id == null ? "Create" : "Edit")" method="post">
 
     <input asp-for="FirstName" placeholder="Nombre" />
+    <span asp-validation-for="FirstName"></span>
+
     <input asp-for="LastName" placeholder="Apellido" />
+    <span asp-validation-for="LastName"></span>
+
     <input asp-for="Cedula" placeholder="Cédula" />
+    <span asp-validation-for="Cedula"></span>
+
     <input asp-for="Email" placeholder="Correo" />
+    <span asp-validation-for="Email"></span>
 
     @if (Model.Id == null)
     {
-        <input asp-for="Username" placeholder="Usuario" />
-        <input asp-for="Password" type="password" placeholder="Contraseña" />
-        <input asp-for="ConfirmPassword" type="password" placeholder="Confirmar contraseña" />
+        <input asp-for="Password" type="password" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
+        <input asp-for="ConfirmPassword" type="password" placeholder="Confirmar nueva contraseña" />
+        <span asp-validation-for="ConfirmPassword"></span>
 
         <select asp-for="Role" asp-items="Model.Roles" id="roleSelect">
             <option value="">Seleccione un rol</option>
@@ -26,21 +35,35 @@
     }
     else
     {
-        <input asp-for="Username" />
-        <input asp-for="Password" type="password" placeholder="Nueva contraseña" />
-        <input asp-for="AdditionalAmount" placeholder="Monto adicional" />
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="Role" type="hidden" />
+
+        <input asp-for="Username" placeholder="Usuario" />
+        <span asp-validation-for="Username"></span>
+
+        <input asp-for="Password" type="password" placeholder="Nueva contraseña (opcional)" />
+        <input asp-for="ConfirmPassword" type="password" placeholder="Confirmar nueva contraseña" />
+        <span asp-validation-for="ConfirmPassword"></span>
+
+        @if (Model.Role == "Cliente")
+        {
+            <input asp-for="AdditionalAmount" placeholder="Monto adicional (RD$)" />
+            <span asp-validation-for="AdditionalAmount"></span>
+        }
     }
 
     <button type="submit">Guardar</button>
 </form>
 
-<script>
-    const role = document.getElementById("roleSelect");
-    const monto = document.getElementById("montoDiv");
-
-    if (role) {
-        role.addEventListener("change", function () {
-            monto.style.display = this.value === "Cliente" ? "block" : "none";
-        });
-    }
-</script>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const role = document.getElementById("roleSelect");
+        const monto = document.getElementById("montoDiv");
+        if (role) {
+            role.addEventListener("change", function () {
+                monto.style.display = this.value === "Cliente" ? "block" : "none";
+            });
+        }
+    </script>
+}

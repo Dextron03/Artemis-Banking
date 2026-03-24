@@ -1,29 +1,123 @@
-﻿@model List<Domain.Entities.Share>
+﻿@using Application.ViewModels.Loan
+@model LoanDetailsViewModel
+@{
+    ViewData["Title"] = "Tabla de Amortización";
+    int paidCount = Model.Shares.Count(s => s.IsPaid);
+    int delayedCount = Model.Shares.Count(s => s.IsDelayed);
+    int pendingCount = Model.Shares.Count(s => !s.IsPaid && !s.IsDelayed);
+}
 
-<h2>Tabla de Amortización</h2>
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-table"></i> Tabla de Amortización</h2>
+            <small class="text-muted">
+                Préstamo <strong>#@Model.IdentifierNumber</strong> &mdash; @Model.ClientName
+            </small>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Préstamos
+        </a>
+    </div>
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Fecha</th>
-            <th>Monto</th>
-            <th>Pagado</th>
-            <th>Atrasado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var s in Model)
-        {
-            <tr>
-                <td>@s.QuotaNumber</td>
-                <td>@s.DatePay.ToShortDateString()</td>
-                <td>@s.ShareAmount.ToString("C")</td>
-                <td>@(s.IsPaid ? "Sí" : "No")</td>
-                <td>@(s.IsDelayed ? "Sí" : "No")</td>
-            </tr>
-        }
-    </tbody>
-</table>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Capital prestado</div>
+                    <div class="fs-5 fw-bold text-success">RD$@Model.LoanAmount.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Cuota mensual fija</div>
+                    <div class="fs-5 fw-bold text-primary">RD$@Model.MonthlyPayment.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Tasa de interés anual</div>
+                    <div class="fs-5 fw-bold text-warning">@Model.InterestRate.ToString("N2")%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Plazo</div>
+                    <div class="fs-5 fw-bold">@Model.TermMonths meses</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<a asp-action="Index" class="btn btn-secondary">Volver</a>
+    <div class="table-responsive shadow-sm">
+        <table class="table table-bordered table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th class="text-center">#</th>
+                    <th>Fecha de pago</th>
+                    <th class="text-end">Cuota (RD$)</th>
+                    <th class="text-center">Pagada</th>
+                    <th class="text-center">Atrasada</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Shares)
+                {
+                    string rowClass = s.IsPaid ? "table-success" :
+                    s.IsDelayed ? "table-danger" : "";
+                    <tr class="@rowClass">
+                        <td class="text-center fw-semibold">@s.QuotaNumber</td>
+                        <td>@s.DatePay.ToString("dd/MM/yyyy")</td>
+                        <td class="text-end fw-semibold">RD$@s.ShareAmount.ToString("N2")</td>
+                        <td class="text-center">
+                            @if (s.IsPaid)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-lg"></i> Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (s.IsDelayed)
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-clock-history"></i> Sí</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark border">No</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-secondary fw-semibold">
+                <tr>
+                    <td colspan="2" class="text-end">Totales:</td>
+                    <td class="text-end">RD$@Model.Shares.Sum(s => s.ShareAmount).ToString("N2")</td>
+                    <td class="text-center">@paidCount pagadas</td>
+                    <td class="text-center">@delayedCount atrasadas</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="mt-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small">
+            Total: <strong>@Model.Shares.Count</strong> |
+            Pagadas: <strong class="text-success">@paidCount</strong> |
+            Atrasadas: <strong class="text-danger">@delayedCount</strong> |
+            Pendientes: <strong>@pendingCount</strong>
+        </span>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>

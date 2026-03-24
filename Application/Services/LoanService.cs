@@ -1,56 +1,256 @@
-﻿using Application.ViewModels;
+﻿using Application.DTOs.Loan;
+using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces;
 using Infrastructure.Identity.Entities;
-using Infrastructure.Persistence.Context;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Shared.Services;
 
 namespace Application.Services
 {
-    public class LoanService
+    public class LoanService : ILoanService
     {
-        private readonly IGenericRepository<Loan> _loanRepo;
-        private readonly IGenericRepository<SavingsAccount> _accountRepo;
+        private readonly ILoanRepository _loanRepo;
+        private readonly ISavingsAccountRepository _accountRepo;
         private readonly UserManager<AppUser> _userManager;
         private readonly IEmailService _emailService;
-        private readonly ApplicationDbContext _context;
+        private readonly ITransactionRepository _transactionRepo;
 
-        public LoanService(
-            IGenericRepository<Loan> loanRepo,
-            IGenericRepository<SavingsAccount> accountRepo,
-            UserManager<AppUser> userManager,
-            IEmailService emailService, ApplicationDbContext context)
+        public LoanService( ILoanRepository loanRepo, ITransactionRepository transactionRepo, ISavingsAccountRepository accountRepo, UserManager<AppUser> userManager, IEmailService emailService)
         {
             _loanRepo = loanRepo;
             _accountRepo = accountRepo;
             _userManager = userManager;
             _emailService = emailService;
-            _context = context;
+            _transactionRepo = transactionRepo;
         }
 
-        public async Task<string> CreateLoan(string userId, decimal amount, decimal interest, int months, string adminId)
+        public async Task<PagedLoansDto> GetPagedAsync(LoanFilterDto filter)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) throw new Exception("Usuario no encontrado");
+            filter.PageSize = Math.Min(filter.PageSize, 20);
 
-            var existingLoan = (await _loanRepo.FindAsync(l =>
-                l.UserId == userId && l.IsActive)).FirstOrDefault();
+            var all = (await _loanRepo.GetAllWithSharesAsync()).ToList();
+            var result = new List<LoanSummaryDto>();
 
-            if (existingLoan != null)
-                throw new Exception("Cliente ya tiene préstamo activo");
+            foreach (var loan in all)
+            {
+                if (string.IsNullOrWhiteSpace(filter.IdentityNumber))
+                {
+                    bool soloActivos = filter.IsActive ?? true;
+                    if (loan.IsActive != soloActivos) continue;
+                }
+                else
+                {
+                    if (filter.IsActive.HasValue && loan.IsActive != filter.IsActive.Value)
+                        continue;
+                }
+
+                var user = await _userManager.FindByIdAsync(loan.UserId);
+                if (user == null) continue;
+
+                if (!string.IsNullOrWhiteSpace(filter.IdentityNumber) &&
+                    user.IdentityNumber.Trim() != filter.IdentityNumber.Trim())
+                    continue;
+
+                result.Add(MapToSummary(loan, user));
+            }
+
+            if (string.IsNullOrWhiteSpace(filter.IdentityNumber))
+            {
+                result = result.OrderByDescending(l => l.Id).ToList();
+            }
+            else
+            {
+                result = result
+                    .OrderByDescending(l => l.IsActive)
+                    .ThenByDescending(l => l.Id)
+                    .ToList();
+            }
+
+            int total = result.Count;
+            int pages = (int)Math.Ceiling((double)total / filter.PageSize);
+
+            var items = result
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToList();
+
+            return new PagedLoansDto
+            {
+                Items = items,
+                TotalItems = total,
+                TotalPages = pages,
+                CurrentPage = filter.Page
+            };
+        }
+
+        public async Task<List<ShareDto>> GetSharesAsync(string loanId)
+        {
+            var loan = await _loanRepo.GetByIdWithSharesAsync(loanId)
+                       ?? throw new InvalidOperationException("Préstamo no encontrado.");
+
+            return loan.Shares
+                .OrderBy(s => s.QuotaNumber)
+                .Select(s => new ShareDto
+                {
+                    Id = s.Id,
+                    QuotaNumber = s.QuotaNumber,
+                    ShareAmount = s.ShareAmount,
+                    DatePay = s.DatePay,
+                    IsPaid = s.IsPaid,
+                    IsDelayed = s.IsDelayed
+                })
+                .ToList();
+        }
+
+        public async Task<LoanDetailDto> GetLoanDetailAsync(string loanId)
+        {
+            var loan = await _loanRepo.GetByIdWithSharesAsync(loanId)
+                       ?? throw new InvalidOperationException("Préstamo no encontrado.");
+
+            var user = await _userManager.FindByIdAsync(loan.UserId);
+            string clientName = user != null
+                ? $"{user.FirtsName} {user.LastName}"
+                : "—";
+
+            var shares = loan.Shares
+                .OrderBy(s => s.QuotaNumber)
+                .Select(s => new ShareDto
+                {
+                    Id = s.Id,
+                    QuotaNumber = s.QuotaNumber,
+                    ShareAmount = s.ShareAmount,
+                    DatePay = s.DatePay,
+                    IsPaid = s.IsPaid,
+                    IsDelayed = s.IsDelayed
+                })
+                .ToList();
+
+            return new LoanDetailDto
+            {
+                LoanId = loan.Id,
+                IdentifierNumber = loan.IdentifierNumber,
+                ClientName = clientName,
+                LoanAmount = loan.LoanAmount,
+                InterestRate = loan.InterestRate,
+                TermMonths = loan.TermMonths,
+                MonthlyPayment = loan.MonthlyPayment,
+                Shares = shares
+            };
+        }
+
+        public async Task<EligibleClientsResultDto> GetEligibleClientsAsync(string? identityNumber)
+        {
+            var usersInRole = await _userManager.GetUsersInRoleAsync("Cliente");
+            var activeClients = usersInRole.Where(u => u.LockoutEnd == null || u.LockoutEnd <= DateTimeOffset.Now).ToList();
+
+            var activeLoans = (await _loanRepo.FindAsync(l => l.IsActive)).ToList();
+            var clientsWithActiveLoan = activeLoans
+                .Select(l => l.UserId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var allLoans = (await _loanRepo.GetAllAsync()).ToList();
+            var eligible = new List<EligibleClientDto>();
+
+            foreach (var user in activeClients)
+            {
+                if (clientsWithActiveLoan.Contains(user.Id)) continue;
+
+                if (!string.IsNullOrWhiteSpace(identityNumber) &&
+                    !user.IdentityNumber.Contains(identityNumber.Trim()))
+                    continue;
+
+                decimal debt = allLoans
+                    .Where(l => l.UserId == user.Id && l.IsActive)
+                    .Sum(l => l.OutstandingAmount);
+
+                eligible.Add(new EligibleClientDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirtsName,
+                    LastName = user.LastName,
+                    IdentityNumber = user.IdentityNumber,
+                    Email = user.Email ?? string.Empty,
+                    TotalDebt = debt
+                });
+            }
+
+            decimal averageDebt = activeLoans.Count > 0
+                ? activeLoans.Average(l => l.OutstandingAmount)
+                : 0m;
+
+            return new EligibleClientsResultDto
+            {
+                Clients = eligible.OrderBy(c => c.FirstName).ToList(),
+                AverageDebt = Math.Round(averageDebt, 2, MidpointRounding.AwayFromZero)
+            };
+        }
+
+        public async Task<RiskEvaluationDto> EvaluateRiskAsync(
+            string userId, decimal amount, decimal interestRate)
+        {
+            decimal clientDebt = await GetClientDebtAsync(userId);
+            decimal averageDebt = await GetAverageDebtAsync();
+            decimal totalNewLoanCost = amount + (amount * (interestRate / 100m));
+
+            bool isHighRisk = false;
+            string riskType = string.Empty;
+
+            if (clientDebt > averageDebt)
+            {
+                isHighRisk = true;
+                riskType = "RIESGO_ACTUAL";
+            }
+            else if ((clientDebt + totalNewLoanCost) > averageDebt)
+            {
+                isHighRisk = true;
+                riskType = "RIESGO_NUEVO";
+            }
+
+            return new RiskEvaluationDto
+            {
+                IsHighRisk = isHighRisk,
+                RiskType = riskType,
+                AverageDebt = Math.Round(averageDebt, 2, MidpointRounding.AwayFromZero),
+                ClientDebt = Math.Round(clientDebt, 2, MidpointRounding.AwayFromZero)
+            };
+        }
+
+        public async Task<string> CreateLoanAsync(CreateLoanDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(dto.UserId)
+                       ?? throw new InvalidOperationException("Usuario no encontrado.");
+
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Cliente"))
+                throw new InvalidOperationException("Solo se pueden asignar préstamos a clientes.");
+
+            if (!user.IsActive)
+                throw new InvalidOperationException("El cliente está inactivo.");
+
+            var existing = (await _loanRepo.FindAsync(l =>
+                l.UserId == dto.UserId && l.IsActive)).FirstOrDefault();
+
+            if (existing != null)
+                throw new InvalidOperationException(
+                    "El cliente ya tiene un préstamo activo. Solo se permite uno a la vez.");
+
+            string identifier;
+            do { identifier = Loan.GenerateUniqueNumber(); }
+            while (await _loanRepo.IdentifierExistsAsync(identifier));
 
             var loan = new Loan
             {
-                UserId = userId,
-                LoanAmount = amount,
-                InterestRate = interest,
-                TermMonths = months,
-                OutstandingAmount = amount,
-                IdentifierNumber = Loan.GenerateUniqueNumber(),
-                CreatedByUserId = adminId
+                IdentifierNumber = identifier,
+                UserId = dto.UserId,
+                CreatedByUserId = dto.AdminId,
+                LoanAmount = dto.Amount,
+                InterestRate = dto.InterestRate,
+                TermMonths = dto.Months,
+                OutstandingAmount = dto.Amount,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
             };
 
             loan.GenerateAmortizationTable();
@@ -58,190 +258,100 @@ namespace Application.Services
             await _loanRepo.AddAsync(loan);
             await _loanRepo.SaveChangesAsync();
 
-            var account = (await _accountRepo.FindAsync(a =>
-                a.UserId == userId && a.IsPrincipal)).FirstOrDefault();
-
+            var account = await _accountRepo.GetPrincipalByUserIdAsync(dto.UserId);
             if (account != null)
             {
-                account.SetBalance(account.Balance + amount);
+                account.SetBalance(account.Balance + dto.Amount);
                 _accountRepo.Update(account);
+
+                var transaction = new Transaction
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Amount = dto.Amount,
+                    Type = TransactionType.Deposit,
+                    Origin = loan.IdentifierNumber,     
+                    Beneficiary = account.AccountNumber, 
+                    Status = "APROBADA",
+                    Concept = $"Desembolso de préstamo {loan.IdentifierNumber}",
+                    SavingAccountId = account.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _transactionRepo.AddAsync(transaction); 
+
                 await _accountRepo.SaveChangesAsync();
             }
+            string emailBody =
+                $"<p>Estimado/a <strong>{user.FirtsName} {user.LastName}</strong>,</p>" +
+                $"<p>Su préstamo ha sido aprobado con los siguientes detalles:</p>" +
+                $"<ul>" +
+                $"  <li><strong>Monto aprobado:</strong> RD${loan.LoanAmount:N2}</li>" +
+                $"  <li><strong>Plazo:</strong> {loan.TermMonths} meses</li>" +
+                $"  <li><strong>Tasa de interés anual:</strong> {loan.InterestRate:N2}%</li>" +
+                $"  <li><strong>Cuota mensual:</strong> RD${loan.MonthlyPayment:N2}</li>" +
+                $"</ul>" +
+                $"<p>Número de préstamo: <strong>{loan.IdentifierNumber}</strong></p>";
 
             await _emailService.SendEmailAsync(
-                user.Email,
-                "Préstamo aprobado",
-                $"Monto: {amount} | Meses: {months} | Tasa: {interest}% | Cuota: {loan.MonthlyPayment}"
-            );
+                user.Email!,
+                "Préstamo aprobado – Banco Digital",
+                emailBody);
 
             return loan.Id;
         }
 
-        public async Task<(List<LoanViewModel>, int)> GetPaged(string identity, bool? isActive, int page, int size)
+        public async Task UpdateInterestRateAsync(UpdateLoanRateDto dto)
         {
-            var loans = (await _loanRepo.GetAllAsync()).ToList();
-
-            var result = new List<LoanViewModel>();
-
-            foreach (var loan in loans)
-            {
-                var user = await _userManager.FindByIdAsync(loan.UserId);
-
-                if (user == null) continue;
-
-                if (!string.IsNullOrEmpty(identity) && user.IdentityNumber != identity)
-                    continue;
-
-                if (isActive.HasValue && loan.IsActive != isActive.Value)
-                    continue;
-
-                result.Add(new LoanViewModel
-                {
-                    Id = loan.Id,
-                    IdentifierNumber = loan.IdentifierNumber,
-                    ClientName = $"{user.FirtsName} {user.LastName}",
-                    IdentityNumber = user.IdentityNumber,
-                    LoanAmount = loan.LoanAmount,
-                    TotalInstallments = loan.TermMonths,
-                    PaidInstallments = loan.Shares.Count(s => s.IsPaid),
-                    PendingAmount = loan.OutstandingAmount,
-                    InterestRate = loan.InterestRate,
-                    Months = loan.TermMonths,
-                    PaymentStatus = loan.PaymentStatus.ToString(),
-                    IsActive = loan.IsActive
-                });
-            }
-
-            result = result
-                .OrderByDescending(l => l.IsActive)
-                .ThenByDescending(l => l.Id)
-                .ToList();
-
-            var total = result.Count;
-
-            var data = result
-                .Skip((page - 1) * size)
-                .Take(size)
-                .ToList();
-
-            return (data, total);
-        }
-
-        public async Task<List<Share>> GetShares(string loanId)
-        {
-            var loan = await _loanRepo.GetByIdAsync(loanId);
-            if (loan == null) throw new Exception("No existe");
-
-            return loan.Shares.OrderBy(s => s.DatePay).ToList();
-        }
-
-        public async Task UpdateInterest(string loanId, decimal newRate)
-        {
-            var loan = await _loanRepo.GetByIdAsync(loanId);
-            if (loan == null) throw new Exception("No existe");
-
-            loan.InterestRate = newRate;
-
-            var remaining = loan.Shares
-                .Where(s => !s.IsPaid && s.DatePay > DateTime.Now)
-                .ToList();
-
-            int months = remaining.Count;
-
-            decimal newPayment = CalculateMonthlyPayment(
-                loan.OutstandingAmount,
-                newRate,
-                months);
-
-            foreach (var s in remaining)
-                s.ShareAmount = Math.Round(newPayment, 2);
+            var loan = await _loanRepo.GetByIdWithSharesAsync(dto.LoanId) ?? throw new InvalidOperationException("Préstamo no encontrado.");
+            loan.RecalculateFutureShares(dto.NewRate);
 
             _loanRepo.Update(loan);
             await _loanRepo.SaveChangesAsync();
-
             var user = await _userManager.FindByIdAsync(loan.UserId);
+            if (user != null)
+            {
+                string emailBody =
+                    $"<p>Estimado/a <strong>{user.FirtsName} {user.LastName}</strong>,</p>" +
+                    $"<p>La tasa de interés de su préstamo <strong>{loan.IdentifierNumber}</strong> " +
+                    $"ha sido actualizada.</p>" +
+                    $"<ul>" +
+                    $"  <li><strong>Nueva tasa anual:</strong> {dto.NewRate:N2}%</li>" +
+                    $"  <li><strong>Nueva cuota mensual:</strong> RD${loan.MonthlyPayment:N2}</li>" +
+                    $"</ul>" +
+                    $"<p>El cambio aplica a partir de su próxima cuota.</p>";
 
-            await _emailService.SendEmailAsync(
-                user.Email,
-                "Tasa actualizada",
-                $"Nueva tasa: {newRate}% | Nueva cuota: {newPayment}"
-            );
+                await _emailService.SendEmailAsync(
+                    user.Email!,
+                    "Actualización de tasa de interés – Banco Digital",
+                    emailBody);
+            }
         }
 
-        public async Task<(bool, string)> EvaluateRisk(string userId, decimal amount, decimal interest)
-        {
-            var debt = await GetClientDebt(userId);
-            var avg = await GetAverageDebt();
-
-            decimal totalLoan = amount + (amount * (interest / 100));
-
-            if (debt > avg)
-                return (true, "RIESGO_ACTUAL");
-
-            if ((debt + totalLoan) > avg)
-                return (true, "RIESGO_NUEVO");
-
-            return (false, "");
-        }
-
-        public async Task<decimal> GetClientDebt(string userId)
+        private async Task<decimal> GetClientDebtAsync(string userId)
         {
             var loans = await _loanRepo.FindAsync(l => l.UserId == userId && l.IsActive);
             return loans.Sum(l => l.OutstandingAmount);
         }
 
-        public async Task<decimal> GetAverageDebt()
+        private async Task<decimal> GetAverageDebtAsync()
         {
-            var loans = await _loanRepo.GetAllAsync();
-            if (!loans.Any()) return 0;
-            return loans.Average(l => l.OutstandingAmount);
+            var loans = (await _loanRepo.FindAsync(l => l.IsActive)).ToList();
+            return loans.Count == 0 ? 0m : loans.Average(l => l.OutstandingAmount);
         }
 
-        private decimal CalculateMonthlyPayment(decimal P, decimal rate, int n)
+        private static LoanSummaryDto MapToSummary(Loan loan, AppUser user) => new()
         {
-            decimal r = (rate / 100) / 12;
-
-            return P * (r * (decimal)Math.Pow(1 + (double)r, n)) /
-                   ((decimal)Math.Pow(1 + (double)r, n) - 1);
-        }
-
-        public async Task<SelectClientViewModel> GetClientsForLoan(string identityNumber = null)
-        {
-            var users = await _context.Users
-                .Where(u => u.IsActive)
-                .ToListAsync();
-
-            var result = new List<ClientLoanViewModel>();
-
-            foreach (var user in users)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-                if (!roles.Contains("Cliente"))
-                    continue;
-
-                result.Add(new ClientLoanViewModel
-                {
-                    Id = user.Id,
-                    FirtsName = user.FirtsName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                    IdentityNumber = user.IdentityNumber,
-                    Debt = 0 
-                });
-            }
-
-            if (!string.IsNullOrEmpty(identityNumber))
-            {
-                result = result
-                    .Where(u => u.IdentityNumber.Trim() == identityNumber.Trim())
-                    .ToList();
-            }
-
-            return new SelectClientViewModel
-            {
-                Clients = result,
-                AverageDebt = result.Any() ? result.Average(x => x.Debt) : 0
-            };
-        }
+            Id = loan.Id,
+            IdentifierNumber = loan.IdentifierNumber,
+            ClientName = $"{user.FirtsName} {user.LastName}",
+            IdentityNumber = user.IdentityNumber,
+            LoanAmount = loan.LoanAmount,
+            TotalInstallments = loan.TermMonths,
+            PaidInstallments = loan.Shares.Count(s => s.IsPaid),
+            PendingAmount = loan.OutstandingAmount,
+            InterestRate = loan.InterestRate,
+            Months = loan.TermMonths,
+            PaymentStatus = loan.PaymentStatus == PaymentStatusType.AlDia ? "Al Día" : "En Mora",
+            IsActive = loan.IsActive
+        };
     }
 }

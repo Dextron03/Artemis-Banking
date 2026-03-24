@@ -1,63 +1,126 @@
-﻿@model Application.ViewModels.DashboardAdminViewModel
+﻿@using Application.ViewModels.DashboardAdmin
+@model DashboardAdminViewModel
 
 @{
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="container mt-4">
+<style>
+    body {
+        background: linear-gradient(135deg, #0a192f, #01014F);
+        color: #e2e8f0;
+    }
 
-    <h2>Dashboard Administrador</h2>
+    .dashboard-title {
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
 
-    <hr />
+    .card-dashboard {
+        background-color: #0f172a;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        transition: 0.3s;
+    }
 
-    <div class="row">
+        .card-dashboard:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+        }
+
+    .card-title {
+        font-size: 14px;
+        color: #94a3b8;
+    }
+
+    .card-value {
+        font-size: 26px;
+        font-weight: bold;
+        color: #38bdf8;
+    }
+
+    .btn-logout {
+        background: linear-gradient(135deg, #1e3a8a, #2563eb);
+        border: none;
+        color: white;
+        font-weight: bold;
+    }
+
+        .btn-logout:hover {
+            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+        }
+</style>
+
+<div class="container py-4">
+
+    <h2 class="dashboard-title mb-4">
+         Dashboard Administrador
+    </h2>
+
+    <div class="row g-4">
 
         <div class="col-md-4">
-            <p><strong>Total Transacciones:</strong> @Model.TotalTransactions</p>
-            <p><strong>Transacciones Hoy:</strong> @Model.TransactionsToday</p>
-        </div>
+            <div class="card-dashboard">
+                <div class="card-title">Total Transacciones</div>
+                <div class="card-value">@Model.TotalTransactions</div>
 
+                <div class="card-title mt-3">Transacciones Hoy</div>
+                <div class="card-value">@Model.TransactionsToday</div>
+            </div>
+        </div>
         <div class="col-md-4">
-            <p><strong>Total Pagos:</strong> @Model.TotalPayments</p>
-            <p><strong>Pagos Hoy:</strong> @Model.PaymentsToday</p>
-        </div>
+            <div class="card-dashboard">
+                <div class="card-title">Total Pagos</div>
+                <div class="card-value">@Model.TotalPayments</div>
 
+                <div class="card-title mt-3">Pagos Hoy</div>
+                <div class="card-value">@Model.PaymentsToday</div>
+            </div>
+        </div>
         <div class="col-md-4">
-            <p><strong>Clientes Activos:</strong> @Model.ActiveClients</p>
-            <p><strong>Clientes Inactivos:</strong> @Model.InactiveClients</p>
+            <div class="card-dashboard">
+                <div class="card-title">Clientes Activos</div>
+                <div class="card-value">@Model.ActiveClients</div>
+
+                <div class="card-title mt-3">Clientes Inactivos</div>
+                <div class="card-value">@Model.InactiveClients</div>
+            </div>
         </div>
-
-    </div>
-
-    <hr />
-
-    <div class="row">
-
         <div class="col-md-4">
-            <p><strong>Préstamos Activos:</strong> @Model.ActiveLoans</p>
+            <div class="card-dashboard">
+                <div class="card-title">Préstamos Activos</div>
+                <div class="card-value">@Model.ActiveLoans</div>
+            </div>
         </div>
-
         <div class="col-md-4">
-            <p><strong>Tarjetas Activas:</strong> @Model.ActiveCreditCards</p>
+            <div class="card-dashboard">
+                <div class="card-title">Tarjetas Activas</div>
+                <div class="card-value">@Model.ActiveCreditCards</div>
+            </div>
         </div>
-
         <div class="col-md-4">
-            <p><strong>Cuentas de Ahorro:</strong> @Model.TotalSavingsAccounts</p>
+            <div class="card-dashboard">
+                <div class="card-title">Cuentas de Ahorro</div>
+                <div class="card-value">@Model.TotalSavingsAccounts</div>
+            </div>
         </div>
-
-    </div>
-
-    <hr />
-
-    <div class="row">
         <div class="col-md-12">
-            <p><strong>Total Productos:</strong> @Model.TotalProducts</p>
-            <p><strong>Promedio Deuda por Cliente:</strong> $ @Model.AverageDebtPerClient.ToString("N2")</p>
+            <div class="card-dashboard">
+                <div class="card-title">Total Productos</div>
+                <div class="card-value">@Model.TotalProducts</div>
+
+                <div class="card-title mt-3">Promedio Deuda por Cliente</div>
+                <div class="card-value">$ @Model.AverageDebtPerClient.ToString("N2")</div>
+            </div>
         </div>
+
     </div>
 
-    <form asp-controller="Account" asp-action="Logout" method="post">
-        <button type="submit" class="btn btn-danger mt-2">Cerrar Sesión</button>
+    <form asp-controller="Account" asp-action="Logout" method="post" class="mt-4">
+        <button type="submit" class="btn btn-logout">
+            Cerrar Sesión
+        </button>
     </form>
 
 </div>

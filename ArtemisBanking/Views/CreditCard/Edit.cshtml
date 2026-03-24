@@ -1,0 +1,93 @@
+﻿@model ArtemisBanking.ViewModels.EditCreditCardViewModel
+@{
+    ViewData["Title"] = "Editar la Tarjeta";
+    var debtPct = Model.CreditLimit > 0 ? (double)(Model.CurrentDebt / Model.CreditLimit * 100) : 0;
+    var barColor = debtPct > 80 ? "bg-danger" : debtPct > 50 ? "bg-warning" : "bg-success";
+}
+
+<div class="container py-4" style="max-width:580px">
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-pencil-square text-warning me-2"></i>Editar Tarjeta
+            </h2>
+            <span class="text-muted small">
+                Tarjeta <code>**** **** **** @Model.LastFourDigits</code>
+            </span>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </a>
+    </div>
+
+    <div class="alert alert-info d-flex align-items-start gap-3 mb-4">
+        <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
+        <div>
+            <strong>Deuda actual de la tarjeta:</strong>
+            <span class="fw-bold @(Model.CurrentDebt > 0 ? "text-danger" : "text-success") ms-1">
+                @Model.CurrentDebt.ToString("C2")
+            </span>
+            <div class="small text-muted mt-1">El nuevo límite no puede ser inferior a esta cifra.</div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header py-3">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-sliders me-2 text-warning"></i>Modificar Límite de Crédito
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <form method="post" asp-action="Edit">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="LastFourDigits" />
+                <input type="hidden" asp-for="CurrentDebt" />
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-semibold text-muted">Uso actual del crédito</span>
+                        <span class="small fw-semibold">@debtPct.ToString("F1")%</span>
+                    </div>
+                    <div class="progress" style="height:8px">
+                        <div class="progress-bar @barColor" style="width:@debtPct.ToString("F1")%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="CreditLimit" class="form-label fw-semibold">
+                        <i class="bi bi-arrow-up-circle me-1"></i>Nuevo límite de la tarjeta
+                    </label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-warning text-dark fw-bold">$</span>
+                        <input asp-for="CreditLimit" class="form-control"
+                               type="number" step="0.01" min="0.01" placeholder="0.00" />
+                    </div>
+                    <span asp-validation-for="CreditLimit" class="text-danger small"></span>
+                    <div class="form-text">
+                        <i class="bi bi-envelope me-1"></i>
+                        Se enviará un correo al cliente notificando el cambio.
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-end">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-floppy me-1"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
