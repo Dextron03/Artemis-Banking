@@ -1,0 +1,12 @@
+﻿@{
+    ViewBag.Title = "Acceso Denegado";
+    string homeUrl = "/Account/Login";
+    if (User.IsInRole("Administrador")) homeUrl = "/DashboardAdmin/Index";
+    else if (User.IsInRole("Cajero")) homeUrl = "/DashboardCajero/Index";
+    else if (User.IsInRole("Cliente")) homeUrl = "/DashboardCliente/Index";
+}
+<div class="container mt-5 text-center">
+    <h2>Acceso Denegado</h2>
+    <p>No tienes permisos para acceder a esta sección.</p>
+    <a href="@homeUrl" class="btn btn-primary">Volver a mi inicio</a>
+</div>

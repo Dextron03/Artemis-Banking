@@ -92,6 +92,36 @@ namespace Domain.Entities
             }
 
         }
+
+        /// <summary> Recalcula las cuotas FUTURAS no pagadas con una nueva tasa de interés, 
+        /// las cuotas ya pagadas o vencidas NO se modifican.</summary>
+        public void RecalculateFutureShares(decimal newAnnualRate)
+        {
+            InterestRate = newAnnualRate;
+
+            var futureUnpaid = new List<Share>();
+            foreach (var s in Shares)
+            {
+                if (!s.IsPaid && s.DatePay > DateTime.UtcNow)
+                    futureUnpaid.Add(s);
+            }
+
+            if (futureUnpaid.Count == 0) return;
+
+            double P = (double)OutstandingAmount;
+            double r = (double)(newAnnualRate / 100m / 12m);
+            int n = futureUnpaid.Count;
+
+            double factor = Math.Pow(1 + r, n);
+            double rawC = P * (r * factor) / (factor - 1);
+            decimal newQuota = Math.Round((decimal)rawC, 2, MidpointRounding.AwayFromZero);
+
+            MonthlyPayment = newQuota;
+
+            foreach (var s in futureUnpaid)
+                s.ShareAmount = newQuota;
+        }
+
         private static readonly Random _random = new Random();
 
         public static string GenerateUniqueNumber()

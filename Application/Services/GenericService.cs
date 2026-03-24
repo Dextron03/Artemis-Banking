@@ -34,6 +34,11 @@ namespace Application.Services
             return await _repository.FindAsync(predicate);
         }
 
+        public virtual async Task<List<T>> GetAllAsync(params Expression<Func<T, object>>[] includes)
+        {
+            return await _repository.GetAllAsync(includes);
+        }
+
         public virtual async Task AddAsync(T entity)
         {
             await _repository.AddAsync(entity);

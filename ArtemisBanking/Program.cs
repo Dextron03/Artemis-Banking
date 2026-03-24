@@ -1,10 +1,12 @@
 ﻿using Application;
+using Application.Jobs;
 using Infrastructure.Identity;
 using Infrastructure.Identity.Seeds;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Shared;
+using Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,10 @@ builder.Services.AddPersistenceLayerIoc(builder.Configuration);
 builder.Services.AddApplicationLayer(builder.Configuration);
 builder.Services.AddSharedLeyer(builder.Configuration);
 
+builder.Services.AddHangfire(config => config.UseSqlServerStorage( builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHangfireServer();
+builder.Services.AddScoped<LoanOverdueJob>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
@@ -32,8 +38,20 @@ app.UseRouting();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    // Opcional el restringir acceso al dashboard
+});
+
+RecurringJob.AddOrUpdate<LoanOverdueJob>(
+    "mark-overdue-shares",
+    job => job.MarkOverdueSharesAsync(),
+    Cron.Daily(0, 0),   
+    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
 // seeds
-    await app.RunIdentitySeedsAsync();
+await app.RunIdentitySeedsAsync();
 
 if (!app.Environment.IsDevelopment())
 {

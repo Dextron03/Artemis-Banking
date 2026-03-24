@@ -1,117 +1,230 @@
-﻿using Application.Services;
-using Application.ViewModels;
+﻿using Application.DTOs.Loan;
+using Application.Interfaces;
+using Application.ViewModels.Loan;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
-using Infrastructure.Identity.Entities;
+using System.Security.Claims;
 
-public class LoanController : Controller
+namespace ArtemisBanking.Controllers
 {
-    private readonly LoanService _service;
-    private readonly IMapper _mapper;
-
-    public LoanController(LoanService service, IMapper mapper, UserManager<AppUser> userManager)
+    [Authorize(Roles = "Administrador")]
+    public class LoanController : Controller
     {
-        _service = service;
-        _mapper = mapper;
-    }
+        private readonly ILoanService _loanService;
+        private readonly IMapper _mapper;
 
-    public async Task<IActionResult> Index(string identity, bool? status, int page = 1)
-    {
-        var (loans, total) = await _service.GetPaged(identity, status, page, 20);
-
-        ViewBag.TotalPages = (int)Math.Ceiling((double)total / 20);
-        ViewBag.CurrentPage = page;
-
-        var vm = loans;
-
-        return View(vm);
-    }
-
-    public async Task<IActionResult> SelectClient(string identityNumber)
-    {
-        var model = await _service.GetClientsForLoan(identityNumber);
-        return View(model);
-    }
-
-    [HttpPost]
-    public IActionResult SelectClientPost(string userId)
-    {
-        if (string.IsNullOrEmpty(userId))
+        public LoanController(ILoanService loanService, IMapper mapper)
         {
-            TempData["Error"] = "Debe seleccionar un cliente";
-            return RedirectToAction("SelectClient");
+            _loanService = loanService;
+            _mapper = mapper;
         }
 
-        return RedirectToAction("Create", new { userId });
-    }
-
-    public IActionResult Create(string userId)
-    {
-        return View(new CreateLoanViewModel { UserId = userId });
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Create(CreateLoanViewModel vm)
-    {
-        var (risk, type) = await _service.EvaluateRisk(vm.UserId, vm.Amount, vm.InterestRate);
-
-        if (risk)
+        [HttpGet]
+        public async Task<IActionResult> Index(string? identity, bool? status, int page = 1)
         {
-            TempData["UserId"] = vm.UserId;
-            TempData["Amount"] = vm.Amount;
-            TempData["Interest"] = vm.InterestRate;
-            TempData["Months"] = vm.Months;
-            TempData["Type"] = type;
+            var filter = new LoanFilterDto
+            {
+                IdentityNumber = identity,
+                IsActive = status,
+                Page = page,
+                PageSize = 20
+            };
 
-            return RedirectToAction("HighRisk");
+            var paged = await _loanService.GetPagedAsync(filter);
+
+            var vm = new LoanIndexViewModel
+            {
+                Loans = _mapper.Map<List<LoanViewModel>>(paged.Items),
+                TotalPages = paged.TotalPages,
+                CurrentPage = paged.CurrentPage,
+                Identity = identity,
+                Status = status
+            };
+
+            return View(vm);
         }
 
-        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        [HttpGet]
+        public async Task<IActionResult> SelectClient(string? identityNumber)
+        {
+            var result = await _loanService.GetEligibleClientsAsync(identityNumber);
 
-        await _service.CreateLoan(vm.UserId, vm.Amount, vm.InterestRate, vm.Months, adminId);
-        return RedirectToAction("Index");
-    }
+            var vm = new SelectLoanClientViewModel
+            {
+                Clients = _mapper.Map<List<ClientLoanViewModel>>(result.Clients),
+                AverageDebt = result.AverageDebt,
+                SearchIdentity = identityNumber
+            };
 
-    public IActionResult HighRisk()
-    {
-        return View();
-    }
+            return View(vm);
+        }
 
-    [HttpPost]
-    public async Task<IActionResult> ConfirmHighRisk()
-    {
-        var userId = TempData["UserId"].ToString();
-        var amount = Convert.ToDecimal(TempData["Amount"]);
-        var interest = Convert.ToDecimal(TempData["Interest"]);
-        var months = Convert.ToInt32(TempData["Months"]);
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SelectClientPost(string? userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                TempData["Error"] = "Debe seleccionar un cliente.";
+                return RedirectToAction(nameof(SelectClient));
+            }
 
-        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return RedirectToAction(nameof(Create), new { userId });
+        }
 
-        if (string.IsNullOrEmpty(adminId))
-            throw new Exception("Usuario administrador no autenticado");
+        [HttpGet]
+        public IActionResult Create(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return RedirectToAction(nameof(SelectClient));
 
-        await _service.CreateLoan(userId, amount, interest, months, adminId);
+            var vm = new CreateLoanViewModel { UserId = userId };
+            return View(vm);
+        }
 
-        return RedirectToAction("Index");
-    }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CreateLoanViewModel vm)
+        {
+            if (!ModelState.IsValid)
+                return View(vm);
 
-    public async Task<IActionResult> Details(string id)
-    {
-        var data = await _service.GetShares(id);
-        return View(data);
-    }
+            int[] allowedMonths = { 6, 12, 18, 24, 30, 36, 42, 48, 54, 60 };
+            if (!allowedMonths.Contains(vm.Months))
+            {
+                ModelState.AddModelError(nameof(vm.Months), "El plazo seleccionado no es válido.");
+                return View(vm);
+            }
+            var risk = await _loanService.EvaluateRiskAsync(vm.UserId, vm.Amount, vm.InterestRate);
 
-    public IActionResult Edit(string id)
-    {
-        ViewBag.Id = id;
-        return View();
-    }
+            if (risk.IsHighRisk)
+            {
+                TempData["HR_UserId"] = vm.UserId;
+                TempData["HR_Amount"] = vm.Amount.ToString("F2");
+                TempData["HR_Rate"] = vm.InterestRate.ToString("F2");
+                TempData["HR_Months"] = vm.Months.ToString();
+                TempData["HR_RiskType"] = risk.RiskType;
+                return RedirectToAction(nameof(HighRisk));
+            }
 
-    [HttpPost]
-    public async Task<IActionResult> Edit(string id, decimal rate)
-    {
-        await _service.UpdateInterest(id, rate);
-        return RedirectToAction("Index");
+            await CreateLoanInternal(vm.UserId, vm.Amount, vm.InterestRate, vm.Months);
+            TempData["Success"] = "Préstamo asignado exitosamente.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public IActionResult HighRisk()
+        {
+            if (TempData["HR_UserId"] == null)
+                return RedirectToAction(nameof(Index));
+
+            var vm = new HighRiskViewModel
+            {
+                UserId = TempData["HR_UserId"]!.ToString()!,
+                Amount = decimal.Parse(TempData["HR_Amount"]!.ToString()!),
+                InterestRate = decimal.Parse(TempData["HR_Rate"]!.ToString()!),
+                Months = int.Parse(TempData["HR_Months"]!.ToString()!),
+                RiskType = TempData["HR_RiskType"]!.ToString()!
+            };
+
+            TempData.Keep();
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmHighRisk()
+        {
+            if (TempData["HR_UserId"] == null)
+                return RedirectToAction(nameof(Index));
+
+            string userId = TempData["HR_UserId"]!.ToString()!;
+            decimal amount = decimal.Parse(TempData["HR_Amount"]!.ToString()!);
+            decimal interest = decimal.Parse(TempData["HR_Rate"]!.ToString()!);
+            int months = int.Parse(TempData["HR_Months"]!.ToString()!);
+
+            await CreateLoanInternal(userId, amount, interest, months);
+            TempData["Success"] = "Préstamo de alto riesgo asignado exitosamente.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CancelHighRisk()
+        {
+            TempData.Remove("HR_UserId");
+            TempData.Remove("HR_Amount");
+            TempData.Remove("HR_Rate");
+            TempData.Remove("HR_Months");
+            TempData.Remove("HR_RiskType");
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Details(string id)
+        {
+            var detail = await _loanService.GetLoanDetailAsync(id);
+
+            var vm = new LoanDetailsViewModel
+            {
+                LoanId = detail.LoanId,
+                IdentifierNumber = detail.IdentifierNumber,
+                ClientName = detail.ClientName,
+                LoanAmount = detail.LoanAmount,
+                InterestRate = detail.InterestRate,
+                TermMonths = detail.TermMonths,
+                MonthlyPayment = detail.MonthlyPayment,
+                Shares = _mapper.Map<List<ShareViewModel>>(detail.Shares)
+            };
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(string id)
+        {
+            var detail = await _loanService.GetLoanDetailAsync(id);
+            var vm = new EditLoanRateViewModel
+            {
+                LoanId = id,
+                InterestRate = detail.InterestRate
+            };
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(EditLoanRateViewModel vm)
+        {
+            if (!ModelState.IsValid)
+                return View(vm);
+
+            var dto = _mapper.Map<UpdateLoanRateDto>(vm);
+            await _loanService.UpdateInterestRateAsync(dto);
+
+            TempData["Success"] = "Tasa de interés actualizada correctamente.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        private async Task CreateLoanInternal(
+            string userId, decimal amount, decimal interest, int months)
+        {
+            string adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                             ?? throw new InvalidOperationException(
+                                 "No se pudo determinar el administrador autenticado.");
+
+            var dto = new CreateLoanDto
+            {
+                UserId = userId,
+                AdminId = adminId,
+                Amount = amount,
+                InterestRate = interest,
+                Months = months
+            };
+
+            await _loanService.CreateLoanAsync(dto);
+        }
     }
 }

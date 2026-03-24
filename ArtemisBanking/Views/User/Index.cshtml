@@ -1,21 +1,32 @@
-﻿@using Application.ViewModels
-@model List<UserViewModel>
+﻿@using Application.ViewModels.User
+@model UserIndexViewModel
 
 <h2>Gestión de Usuarios</h2>
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
 
-<a asp-action="Create">+ Nuevo Usuario</a>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <a asp-action="Create" class="btn btn-primary">+ Nuevo Usuario</a>
 
-<form method="get">
-    <select name="role" onchange="this.form.submit()">
-        <option value="">Todos</option>
-        <option value="Administrador">Administrador</option>
-        <option value="Cajero">Cajero</option>
-        <option value="Cliente">Cliente</option>
-    </select>
-</form>
+    <form method="get" class="d-flex gap-2">
+        <select name="role" class="form-select" onchange="this.form.submit()">
+            <option value="" selected="@(Model.SelectedRole == null)">Todos los roles</option>
+            <option value="Administrador" selected="@(Model.SelectedRole == "Administrador")">Administrador</option>
+            <option value="Cajero" selected="@(Model.SelectedRole == "Cajero")">Cajero</option>
+            <option value="Cliente" selected="@(Model.SelectedRole == "Cliente")">Cliente</option>
+        </select>
+        <input type="hidden" name="page" value="1" />
+    </form>
+</div>
 
-<table class="table">
-    <thead>
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
         <tr>
             <th>Usuario</th>
             <th>Cédula</th>
@@ -23,34 +34,103 @@
             <th>Email</th>
             <th>Rol</th>
             <th>Estado</th>
-            <th></th>
+            <th>Acciones</th>
         </tr>
     </thead>
-
     <tbody>
-        @foreach (var user in Model)
+        @foreach (var user in Model.Users)
         {
             <tr>
                 <td>@user.Username</td>
                 <td>@user.Cedula</td>
                 <td>@user.FullName</td>
                 <td>@user.Email</td>
-                <td>@user.Role</td>
-
                 <td>
-                    @(user.IsActive ? "Activo" : "Inactivo")
+                    <span class="badge bg-secondary">@user.Role</span>
                 </td>
-
                 <td>
-                    <a asp-action="Edit" asp-route-id="@user.Id">Editar</a>
-
-                    <a asp-action="Toggle"
-                       asp-route-id="@user.Id"
-                       onclick="return confirm('¿Seguro?')">
-                        Cambiar estado
+                    @if (user.IsActive)
+                    {
+                        <span class="badge bg-success">Activo</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Inactivo</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-sm btn-warning">
+                        Editar
                     </a>
+
+                    @if (user.Id != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                    {
+                        <form asp-action="Toggle" asp-route-id="@user.Id"
+                              method="post" style="display:inline;"
+                              onsubmit="return confirm('¿Está seguro que desea @(user.IsActive ? "inactivar" : "activar") este usuario?')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm @(user.IsActive ? "btn-danger" : "btn-success")">
+                                @(user.IsActive ? "Inactivar" : "Activar")
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="text-muted small">(Tu cuenta)</span>
+                    }
                 </td>
+            </tr>
+        }
+
+        @if (!Model.Users.Any())
+        {
+            <tr>
+                <td colspan="7" class="text-center text-muted">No hay usuarios registrados.</td>
             </tr>
         }
     </tbody>
 </table>
+
+@if (Model.TotalPages > 1)
+{
+    <nav>
+        <ul class="pagination justify-content-center">
+
+            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-page="@(Model.CurrentPage - 1)"
+                   asp-route-role="@Model.SelectedRole">
+                    &laquo; Anterior
+                </a>
+            </li>
+
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-page="@i"
+                       asp-route-role="@Model.SelectedRole">
+                        @i
+                    </a>
+                </li>
+            }
+
+            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-page="@(Model.CurrentPage + 1)"
+                   asp-route-role="@Model.SelectedRole">
+                    Siguiente &raquo;
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+
+    <p class="text-center text-muted small">
+        Mostrando página @Model.CurrentPage de @Model.TotalPages
+        (@Model.TotalCount usuarios en total)
+    </p>
+}

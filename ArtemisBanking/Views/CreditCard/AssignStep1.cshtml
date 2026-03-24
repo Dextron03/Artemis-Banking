@@ -1,0 +1,168 @@
+﻿@model ArtemisBanking.ViewModels.SelectClientWebViewModel
+@{
+    ViewData["Title"] = "Asignar Tarjeta Paso 1";
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-person-check text-primary me-2"></i>Seleccionar Cliente
+            </h2>
+            <span class="text-muted small">Paso 1 de 2 — Asignación de tarjeta de crédito</span>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </a>
+    </div>
+
+    <nav aria-label="Pasos" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active fw-bold text-primary">
+                <i class="bi bi-1-circle-fill me-1"></i>Seleccionar Cliente
+            </li>
+            <li class="breadcrumb-item text-muted">
+                <i class="bi bi-2-circle me-1"></i>Configurar Límite
+            </li>
+        </ol>
+    </nav>
+
+    <div class="alert alert-info d-flex align-items-center gap-3 mb-4">
+        <i class="bi bi-graph-up-arrow fs-4 flex-shrink-0"></i>
+        <div>
+            <span class="fw-semibold small text-uppercase d-block" style="letter-spacing:.05em">
+                Deuda promedio de todos los clientes
+            </span>
+            <span class="fs-4 fw-bold">@Model.AverageDebt.ToString("C2")</span>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="AssignStep1" class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold small">
+                        <i class="bi bi-search me-1"></i>Buscar cliente por cédula
+                    </label>
+                    <input type="text" name="searchIdentity" class="form-control"
+                           placeholder="001-0000000-0" value="@Model.SearchIdentity" />
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search me-1"></i> Buscar
+                    </button>
+                    <a asp-action="AssignStep1" class="btn btn-outline-secondary flex-fill text-center">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <form method="post" asp-action="AssignStep1" id="clientForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="SearchIdentity" />
+
+        @if (!Model.Clients.Any())
+        {
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5 text-muted">
+                    <i class="bi bi-people fs-2 d-block mb-2"></i>
+                    No se encontraron clientes activos@(!string.IsNullOrWhiteSpace(Model.SearchIdentity) ? $" con cédula «{Model.SearchIdentity}»" : "").
+                </div>
+            </div>
+        }
+        else
+        {
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    Debe seleccionar un cliente antes de continuar.
+                </div>
+            }
+
+            <div class="card shadow-sm">
+                <div class="card-header d-flex align-items-center justify-content-between py-3">
+                    <span class="fw-bold">
+                        <i class="bi bi-people me-2 text-primary"></i>Clientes Activos
+                    </span>
+                    <span class="badge bg-primary rounded-pill">@Model.Clients.Count() cliente(s)</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="clientsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width:50px" class="text-center">Sel.</th>
+                                    <th>Cédula</th>
+                                    <th>Nombre y Apellido</th>
+                                    <th>Correo Electrónico</th>
+                                    <th class="text-end">Deuda Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var client in Model.Clients)
+                                {
+                                    <tr class="cc-client-row" data-id="@client.UserId" style="cursor:pointer">
+                                        <td class="text-center">
+                                            <input class="form-check-input"
+                                                   type="radio"
+                                                   name="SelectedUserId"
+                                                   value="@client.UserId"
+                                                   id="r_@client.UserId" />
+                                        </td>
+                                        <td>
+                                            <label for="r_@client.UserId" class="mb-0" style="cursor:pointer">
+                                                <code>@client.IdentityNumber</code>
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <label for="r_@client.UserId" class="mb-0 fw-semibold" style="cursor:pointer">
+                                                @client.FullName
+                                            </label>
+                                        </td>
+                                        <td class="text-muted small">@client.Email</td>
+                                        <td class="text-end fw-semibold @(client.TotalDebt > 0 ? "text-danger" : "text-muted")">
+                                            @client.TotalDebt.ToString("C2")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="nextBar" class="d-none mt-3 text-end">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Siguiente paso <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+            </div>
+        }
+    </form>
+</div>
+
+<script>
+    (function () {
+        const rows    = document.querySelectorAll('.cc-client-row');
+        const nextBar = document.getElementById('nextBar');
+
+        function selectRow(row) {
+            rows.forEach(r => r.classList.remove('table-primary'));
+            row.classList.add('table-primary');
+            row.querySelector('input[type=radio]').checked = true;
+            if (nextBar) nextBar.classList.remove('d-none');
+        }
+
+        rows.forEach(row => {
+            row.addEventListener('click', function (e) {
+                if (e.target.tagName !== 'A') selectRow(this);
+            });
+            row.querySelector('input[type=radio]').addEventListener('change', function () {
+                if (this.checked) selectRow(row);
+            });
+        });
+    })();
+</script>

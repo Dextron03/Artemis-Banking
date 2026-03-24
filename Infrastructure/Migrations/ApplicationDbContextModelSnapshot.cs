@@ -96,6 +96,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("nvarchar(36)");
 
+                    b.Property<string>("AdminId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("AmountDebt")
                         .HasColumnType("decimal(18,2)");
 
@@ -202,6 +206,10 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(9)
                         .HasColumnType("nvarchar(9)");
+
+                    b.Property<string>("AdminId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18,2)");
