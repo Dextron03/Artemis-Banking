@@ -1,0 +1,36 @@
+@model Application.ViewModels.ConfirmPaymentViewModel;
+@{
+    ViewData["Title"] = "Confirmar Pago";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-warning shadow-sm">
+                <div class="card-header bg-warning text-dark fw-bold text-center">
+                    <h4 class="mb-0">⚠️ Confirmar Recepción de Pago</h4>
+                </div>
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-4">¿Confirma que está recibiendo este dinero en caja?</h5>
+                    
+                    <div class="alert alert-warning text-start shadow-sm border-warning">
+                        <p class="mb-1"><strong>Titular del préstamo:</strong> @Model.ClientName @Model.ClientLastName</p>
+                        <p class="mb-1"><strong>Préstamo N°:</strong> @Model.LoanId</p>
+                        <hr />
+                        <p class="mb-0 fs-5 fw-bold text-dark"><strong>Monto a abonar:</strong> RD$ @Model.Amount.ToString("N2")</p>
+                    </div>
+
+                    <form asp-controller="Cashier" asp-action="ProcessPayment" method="post">
+                        <input type="hidden" asp-for="LoanId" />
+                        <input type="hidden" asp-for="Amount" />
+                        
+                        <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-center">
+                            <button type="submit" class="btn btn-success px-4 fw-bold shadow">Sí, Confirmar Pago</button>
+                            <a asp-controller="Cashier" asp-action="Index" class="btn btn-outline-secondary px-4">Cancelar Operación</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

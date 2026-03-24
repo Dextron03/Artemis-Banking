@@ -1,0 +1,55 @@
+@model Application.ViewModels.ConfirmTransferViewModel;
+@{
+    ViewData["Title"] = "Confirmar Transferencia";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-warning shadow">
+                <div class="card-header bg-warning text-dark fw-bold text-center">
+                    <h4 class="mb-0">⚠️ Confirmar Transferencia</h4>
+                </div>
+                <div class="card-body text-center p-4">
+                    <h5 class="card-title text-muted mb-4">Verifique los datos antes de proceder. Esta acción no se puede deshacer.</h5>
+                    
+                    <div class="row text-start mb-4">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <div class="card bg-danger text-white h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6 class="text-uppercase border-bottom border-light pb-2"><i class="bi bi-box-arrow-up"></i> Sale de:</h6>
+                                    <p class="mb-1 mt-2"><strong>Titular:</strong> @Model.OriginClientName</p>
+                                    <p class="mb-0 fs-5"><strong>Cuenta:</strong> @Model.OriginAccount</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-success text-white h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6 class="text-uppercase border-bottom border-light pb-2"><i class="bi bi-box-arrow-down"></i> Entra a:</h6>
+                                    <p class="mb-1 mt-2"><strong>Titular:</strong> @Model.DestinationClientName</p>
+                                    <p class="mb-0 fs-5"><strong>Cuenta:</strong> @Model.DestinationAccount</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info border-info border-2 fs-4 fw-bold mb-4 shadow-sm">
+                        Monto a transferir: RD$ @Model.Amount.ToString("N2")
+                    </div>
+
+                    <form asp-controller="Cashier" asp-action="ProcessTransfer" method="post">
+                        <input type="hidden" asp-for="OriginAccount" />
+                        <input type="hidden" asp-for="DestinationAccount" />
+                        <input type="hidden" asp-for="Amount" />
+                        
+                        <div class="d-grid gap-3 mt-4 d-md-flex justify-content-md-center">
+                            <button type="submit" class="btn btn-success btn-lg px-5 fw-bold shadow">Sí, Procesar Transferencia</button>
+                            <a asp-controller="Cashier" asp-action="Index" class="btn btn-outline-danger btn-lg px-4">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

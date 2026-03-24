@@ -1,0 +1,36 @@
+@model Application.ViewModels.ConfirmWithdrawalViewModel;
+@{
+    ViewData["Title"] = "Confirmar Retiro";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-warning shadow-sm">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    <h4 class="mb-0">⚠️ Confirmar Transacción de Retiro</h4>
+                </div>
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-4">¿Está seguro de entregar este dinero en efectivo?</h5>
+                    
+                    <div class="alert alert-danger text-start shadow-sm border-danger">
+                        <p class="mb-1"><strong>Titular de la cuenta:</strong> @Model.ClientName @Model.ClientLastName</p>
+                        <p class="mb-1"><strong>Cuenta a debitar:</strong> @Model.AccountNumber</p>
+                        <hr />
+                        <p class="mb-0 fs-5 fw-bold text-danger"><strong>Monto a entregar:</strong> RD$ @Model.Amount.ToString("N2")</p>
+                    </div>
+
+                    <form asp-controller="Cashier" asp-action="ProcessWithdrawal" method="post">
+                        <input type="hidden" asp-for="AccountNumber" />
+                        <input type="hidden" asp-for="Amount" />
+                        
+                        <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-center">
+                            <button type="submit" class="btn btn-danger px-4 fw-bold shadow">Sí, Confirmar Retiro</button>
+                            <a asp-controller="Cashier" asp-action="Index" class="btn btn-outline-secondary px-4">Cancelar Operación</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

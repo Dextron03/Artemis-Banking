@@ -1,0 +1,51 @@
+@model Application.ViewModels.TransferViewModel;
+@{
+    ViewData["Title"] = "Realizar Transferencia";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-arrow-left-right"></i> Realizar Transferencia</h4>
+                </div>
+                <div class="card-body bg-light">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger d-none" id="errorSummary"></div>
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger fw-bold mb-3">
+                            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        </div>
+                    }
+
+                    <form asp-controller="Cashier" asp-action="Transfer" method="post">
+                        
+                        <div class="mb-3">
+                            <label asp-for="OriginAccount" class="form-label fw-bold">Cuenta Origen (Sale el dinero)</label>
+                            <input asp-for="OriginAccount" class="form-control" placeholder="Ej: 123456789" />
+                            <span asp-validation-for="OriginAccount" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="DestinationAccount" class="form-label fw-bold">Cuenta Destino (Entra el dinero)</label>
+                            <input asp-for="DestinationAccount" class="form-control" placeholder="Ej: 987654321" />
+                            <span asp-validation-for="DestinationAccount" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Amount" class="form-label fw-bold">Monto a transferir (RD$)</label>
+                            <input asp-for="Amount" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Verificar Datos</button>
+                            <a asp-controller="Cashier" asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

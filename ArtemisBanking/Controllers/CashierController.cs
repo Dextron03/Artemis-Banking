@@ -105,5 +105,78 @@ namespace ArtemisBanking.Controllers
             // luego pondremos el Dashboard del Cajero aquí.
             return View(); 
         }
+
+        [HttpGet]
+        public IActionResult Transfer()
+        {
+            return View(new TransferViewModel());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Transfer(TransferViewModel vm)
+        {
+            if (!ModelState.IsValid) return View(vm);
+
+            var confirmVm = await _cashierService.ValidateTransferAsync(vm);
+
+            if (confirmVm.HasError)
+            {
+                ModelState.AddModelError("", confirmVm.ErrorMessage);
+                return View(vm);
+            }
+
+            return View("ConfirmTransfer", confirmVm);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessTransfer(ConfirmTransferViewModel vm)
+        {
+            var result = await _cashierService.ProcessTransferAsync(vm.OriginAccount, vm.DestinationAccount, vm.Amount);
+
+            if (!result)
+            {
+                ModelState.AddModelError("", "Ocurrió un error al procesar la transferencia.");
+                return View("ConfirmTransfer", vm);
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpGet]
+        public IActionResult Payment()
+        {
+            return View(new PaymentViewModel());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Payment(PaymentViewModel vm)
+        {
+            if (!ModelState.IsValid) return View(vm);
+
+            var confirmVm = await _cashierService.ValidatePaymentAsync(vm);
+
+            if (confirmVm == null)
+            {
+                ModelState.AddModelError("", "El número de préstamo ingresado no existe.");
+                return View(vm);
+            }
+
+            return View("ConfirmPayment", confirmVm);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessPayment(ConfirmPaymentViewModel vm)
+        {
+            var result = await _cashierService.ProcessPaymentAsync(vm.LoanId, vm.Amount);
+
+            if (!result)
+            {
+                ModelState.AddModelError("", "Ocurrió un error al procesar el pago del préstamo.");
+                return View("ConfirmPayment", vm);
+            }
+
+            return RedirectToAction("Index");
+        }
+
     }
 }
