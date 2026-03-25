@@ -1,5 +1,5 @@
 @* @page  se usa únicamente si estuvieras trabajando con Razor Pages, pero tú estás trabajando con el patrón MVC (Model-View-Controller) *@
-@model Application.ViewModels.ConfirmDepositViewModel;
+@model Application.ViewModels.Cashier.Deposits.ConfirmDepositViewModel
 @{
     ViewData["Title"] = "Confirmar Depósito";
 }
@@ -24,6 +24,8 @@
                     <form asp-controller="Cashier" asp-action="ProcessDeposit" method="post">
                         <input type="hidden" asp-for="AccountNumber" />
                         <input type="hidden" asp-for="Amount" />
+                        <input type="hidden" asp-for="ClientName" />
+                        <input type="hidden" asp-for="ClientLastName" />
                         
                         <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-center">
                             <button type="submit" class="btn btn-success px-4">Sí, Confirmar Depósito</button>

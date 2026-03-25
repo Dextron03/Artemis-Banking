@@ -2,7 +2,7 @@
     ViewBag.Title = "Acceso Denegado";
     string homeUrl = "/Account/Login";
     if (User.IsInRole("Administrador")) homeUrl = "/DashboardAdmin/Index";
-    else if (User.IsInRole("Cajero")) homeUrl = "/DashboardCajero/Index";
+    else if (User.IsInRole("Cajero")) homeUrl = "/Cashier/Index";
     else if (User.IsInRole("Cliente")) homeUrl = "/DashboardCliente/Index";
 }
 <div class="container mt-5 text-center">

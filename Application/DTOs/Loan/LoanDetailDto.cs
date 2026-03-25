@@ -15,6 +15,7 @@ namespace Application.DTOs.Loan
         public decimal InterestRate { get; set; }
         public int TermMonths { get; set; }
         public decimal MonthlyPayment { get; set; }
+        public decimal OutstandingAmount { get; set; }
         public List<ShareDto> Shares { get; set; } = new();
 
     }

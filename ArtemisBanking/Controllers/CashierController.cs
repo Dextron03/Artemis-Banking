@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Application.Interfaces;
-using Application.ViewModels;
+using Application.ViewModels.Cashier.Deposits;
+using Application.ViewModels.Cashier.Withdrawals;
+using Application.ViewModels.Cashier.Payments;
+using Application.ViewModels.Cashier.Transfers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,12 +22,21 @@ namespace ArtemisBanking.Controllers
             _cashierService = cashierService;
         }
 
+        public IActionResult Index()
+        {
+            // Retornará una vista vacía, 
+            // luego pondremos el Dashboard del Cajero aquí.
+            return View(); 
+        }
+
+        [HttpGet]
         public IActionResult Deposit()
         {
             return View(new DepositViewModel());
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Deposit(DepositViewModel vm)
         {
             if (!ModelState.IsValid)
@@ -44,7 +56,8 @@ namespace ArtemisBanking.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ProcessDeposit(DepositViewModel vm)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessDeposit(ConfirmDepositViewModel vm)
         {
             var result = await _cashierService.ProcessDepositAsync(vm.AccountNumber, vm.Amount);
 
@@ -64,6 +77,7 @@ namespace ArtemisBanking.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Withdrawal(WithdrawalViewModel vm)
         {
             if(!ModelState.IsValid) return View(vm);
@@ -87,23 +101,18 @@ namespace ArtemisBanking.Controllers
         }
         
         [HttpPost]
-        public async Task<IActionResult> ProcessWithdrawal(WithdrawalViewModel vm)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessWithdrawal(ConfirmWithdrawalViewModel vm)
         {
-            var result = await _cashierService.ProcessDepositAsync(vm.AccountNumber, vm.Amount);
+            var result = await _cashierService.ProcessWithdrawalAsync(vm.AccountNumber, vm.Amount);
 
             if (!result)
             {
                 ModelState.AddModelError("", "Ocurrió un error al procesar el retiro (posibles fondos insuficientes).");
                 return View("ConfirmWithdrawal", vm);
             }
-            return RedirectToAction("Index");
-        }
 
-        public IActionResult Index()
-        {
-            // Por ahora esto cargará una vista vacía, 
-            // luego pondremos el Dashboard del Cajero aquí.
-            return View(); 
+            return RedirectToAction("Index");
         }
 
         [HttpGet]
@@ -113,6 +122,7 @@ namespace ArtemisBanking.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Transfer(TransferViewModel vm)
         {
             if (!ModelState.IsValid) return View(vm);
@@ -129,6 +139,7 @@ namespace ArtemisBanking.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProcessTransfer(ConfirmTransferViewModel vm)
         {
             var result = await _cashierService.ProcessTransferAsync(vm.OriginAccount, vm.DestinationAccount, vm.Amount);
@@ -149,6 +160,7 @@ namespace ArtemisBanking.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Payment(PaymentViewModel vm)
         {
             if (!ModelState.IsValid) return View(vm);
@@ -165,6 +177,7 @@ namespace ArtemisBanking.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProcessPayment(ConfirmPaymentViewModel vm)
         {
             var result = await _cashierService.ProcessPaymentAsync(vm.LoanId, vm.Amount);

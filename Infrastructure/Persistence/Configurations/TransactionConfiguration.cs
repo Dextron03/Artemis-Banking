@@ -26,11 +26,11 @@ namespace Infrastructure.Persistence.Configurations
                 .IsRequired();
 
             builder.Property(t => t.Origin)
-                .HasMaxLength(30)
+                .HasMaxLength(100)
                 .IsRequired();
 
             builder.Property(t => t.Beneficiary)
-                .HasMaxLength(30)
+                .HasMaxLength(100)
                 .IsRequired();
 
             builder.Property(t => t.Status)

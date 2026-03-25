@@ -1,4 +1,4 @@
-@model Application.ViewModels.ConfirmPaymentViewModel;
+@model Application.ViewModels.Cashier.Payments.ConfirmPaymentViewModel
 @{
     ViewData["Title"] = "Confirmar Pago";
 }
@@ -13,16 +13,26 @@
                 <div class="card-body text-center">
                     <h5 class="card-title mb-4">¿Confirma que está recibiendo este dinero en caja?</h5>
                     
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger text-start">
+                            <div asp-validation-summary="All"></div>
+                        </div>
+                    }
+
                     <div class="alert alert-warning text-start shadow-sm border-warning">
                         <p class="mb-1"><strong>Titular del préstamo:</strong> @Model.ClientName @Model.ClientLastName</p>
-                        <p class="mb-1"><strong>Préstamo N°:</strong> @Model.LoanId</p>
+                        <p class="mb-1"><strong>Préstamo N°:</strong> @Model.DisplayIdentifier</p>
                         <hr />
                         <p class="mb-0 fs-5 fw-bold text-dark"><strong>Monto a abonar:</strong> RD$ @Model.Amount.ToString("N2")</p>
                     </div>
 
                     <form asp-controller="Cashier" asp-action="ProcessPayment" method="post">
                         <input type="hidden" asp-for="LoanId" />
+                        <input type="hidden" asp-for="DisplayIdentifier" />
                         <input type="hidden" asp-for="Amount" />
+                        <input type="hidden" asp-for="ClientName" />
+                        <input type="hidden" asp-for="ClientLastName" />
                         
                         <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-center">
                             <button type="submit" class="btn btn-success px-4 fw-bold shadow">Sí, Confirmar Pago</button>

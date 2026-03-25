@@ -25,40 +25,19 @@ namespace ArtemisBanking.Controllers
             string? searchIdentity = null,
             bool? statusFilter = null)
         {
+            var (items, total) = await _cardService.GetPagedAsync(
+                page, PageSize, searchIdentity, statusFilter);
+
             var vm = new CreditCardIndexViewModel
             {
+                Cards = items,
+                TotalCount = total,
                 CurrentPage = page,
                 PageSize = PageSize,
+                TotalPages = (int)Math.Ceiling(total / (double)PageSize),
                 SearchIdentity = searchIdentity,
                 StatusFilter = statusFilter
             };
-
-            if (!string.IsNullOrWhiteSpace(searchIdentity))
-            {
-                var cards = await _cardService.GetByIdentityNumberAsync(searchIdentity);
-                if (statusFilter.HasValue)
-                    cards = FilterByStatus(cards, statusFilter.Value);
-
-                var list = new System.Collections.Generic.List<CreditCardListDto>(cards);
-                vm.Cards = list;
-                vm.TotalCount = list.Count;
-                vm.TotalPages = 1; 
-            }
-            else if (statusFilter.HasValue)
-            {
-                var (items, total) = await _cardService.GetByStatusPagedAsync(
-                    statusFilter.Value, page, PageSize);
-                vm.Cards = items;
-                vm.TotalCount = total;
-                vm.TotalPages = (int)Math.Ceiling(total / (double)PageSize);
-            }
-            else
-            {
-                var (items, total) = await _cardService.GetActivePagedAsync(page, PageSize);
-                vm.Cards = items;
-                vm.TotalCount = total;
-                vm.TotalPages = (int)Math.Ceiling(total / (double)PageSize);
-            }
 
             return View(vm);
         }

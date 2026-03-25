@@ -1,11 +1,10 @@
 ﻿@using Application.ViewModels
-@using Application.ViewModels.Login
-@using Application.ViewModels.User
 @model SaveUserViewModel
 
 <h2>@(Model.Id == null ? "Crear" : "Editar") Usuario</h2>
 
 <form asp-action="@(Model.Id == null ? "Create" : "Edit")" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
 
     <input asp-for="FirstName" placeholder="Nombre" />
     <span asp-validation-for="FirstName"></span>
@@ -19,10 +18,13 @@
     <input asp-for="Email" placeholder="Correo" />
     <span asp-validation-for="Email"></span>
 
+    <input asp-for="Username" placeholder="Usuario" />
+    <span asp-validation-for="Username"></span>
+
     @if (Model.Id == null)
     {
-        <input asp-for="Password" type="password" placeholder="Nueva contraseña (dejar vacío para no cambiar)" />
-        <input asp-for="ConfirmPassword" type="password" placeholder="Confirmar nueva contraseña" />
+        <input asp-for="Password" type="password" placeholder="Contraseña" />
+        <input asp-for="ConfirmPassword" type="password" placeholder="Confirmar contraseña" />
         <span asp-validation-for="ConfirmPassword"></span>
 
         <select asp-for="Role" asp-items="Model.Roles" id="roleSelect">
@@ -38,9 +40,6 @@
         <input asp-for="Id" type="hidden" />
         <input asp-for="Role" type="hidden" />
 
-        <input asp-for="Username" placeholder="Usuario" />
-        <span asp-validation-for="Username"></span>
-
         <input asp-for="Password" type="password" placeholder="Nueva contraseña (opcional)" />
         <input asp-for="ConfirmPassword" type="password" placeholder="Confirmar nueva contraseña" />
         <span asp-validation-for="ConfirmPassword"></span>
@@ -52,7 +51,7 @@
         }
     }
 
-    <button type="submit">Guardar</button>
+    <button type="submit" class="btn btn-primary">Guardar</button>
 </form>
 
 @section Scripts {

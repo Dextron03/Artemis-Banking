@@ -1,6 +1,7 @@
 ﻿using Application.DTOs.User;
 using Application.Services;
-using Application.ViewModels.User;
+using Application.ViewModels.User.Management;
+using Application.ViewModels.User.Queries;
 using Infrastructure.Identity.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -23,7 +24,7 @@ namespace ArtemisBanking.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index(string? role, int page = 1)
+        public async Task<IActionResult> Index(string? role, string? search, int page = 1)
         {
             int pageSize = 20;
             var users = _userManager.Users.ToList();
@@ -31,9 +32,22 @@ namespace ArtemisBanking.Controllers
 
             foreach (var u in users)
             {
+                // Búsqueda por término (Nombre, Apellido, Cédula)
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string term = search.Trim().ToLower();
+                    bool match = u.FirtsName.ToLower().Contains(term) ||
+                                 u.LastName.ToLower().Contains(term) ||
+                                 (!string.IsNullOrEmpty(u.IdentityNumber) && u.IdentityNumber.Contains(term)) ||
+                                 (u.UserName != null && u.UserName.ToLower().Contains(term));
+                    if (!match) continue;
+                }
+
                 var roles = await _userManager.GetRolesAsync(u);
                 if (roles.Contains("Comercio")) continue;
                 var userRole = roles.FirstOrDefault();
+                
+                // Filtrado por Rol
                 if (!string.IsNullOrEmpty(role) && userRole != role) continue;
 
                 list.Add(new UserViewModel
@@ -66,7 +80,8 @@ namespace ArtemisBanking.Controllers
                 TotalPages = totalPages,
                 TotalCount = totalCount,
                 PageSize = pageSize,
-                SelectedRole = role
+                SelectedRole = role,
+                SearchTerm = search
             };
 
             return View(vm);
@@ -82,6 +97,12 @@ namespace ArtemisBanking.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SaveUserViewModel vm)
         {
+            if (!ModelState.IsValid)
+            {
+                vm.Roles = GetRoles();
+                return View("SaveUser", vm);
+            }
+
             var tempUser = new AppUser
             {
                 FirtsName = vm.FirstName,

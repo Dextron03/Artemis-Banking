@@ -9,6 +9,9 @@ namespace Application.Interfaces
 {
     public interface ICreditCardService
     {
+        Task<(IEnumerable<CreditCardListDto> Items, int TotalCount)> GetPagedAsync(
+            int page, int pageSize, string? searchIdentity = null, bool? isActive = null);
+
         Task<(IEnumerable<CreditCardListDto> Items, int TotalCount)> GetActivePagedAsync(
             int page, int pageSize);
 

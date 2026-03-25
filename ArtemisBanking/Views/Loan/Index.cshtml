@@ -1,5 +1,4 @@
-﻿@using Application.ViewModels.Loan
-@model LoanIndexViewModel
+﻿@model LoanIndexViewModel
 @{
     ViewData["Title"] = "Gestión de Préstamos";
 }
@@ -37,9 +36,9 @@
             <div class="col-md-3">
                 <label class="form-label fw-semibold">Estado</label>
                 <select name="status" class="form-select">
-                    <option value="true" selected = "@(Model.Status == true || Model.Status == null ? "selected" : "")"> Activos</option>
-                    <option value="">Todos</option>
-                    <option value="false" selected = "@(Model.Status == false ? "selected" : "")">Completados</option>
+                    <option value="true" selected = "@(Model.Status == true ? "selected" : null)"> Activos</option>
+                    <option value="" selected = "@(Model.Status == null ? "selected" : null)">Todos</option>
+                    <option value="false" selected = "@(Model.Status == false ? "selected" : null)">Completados</option>
                 </select>
             </div>
             <div class="col-md-2">

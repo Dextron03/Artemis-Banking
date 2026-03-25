@@ -1,4 +1,4 @@
-@model Application.ViewModels.ConfirmTransferViewModel;
+@model Application.ViewModels.Cashier.Transfers.ConfirmTransferViewModel
 @{
     ViewData["Title"] = "Confirmar Transferencia";
 }
@@ -42,6 +42,8 @@
                         <input type="hidden" asp-for="OriginAccount" />
                         <input type="hidden" asp-for="DestinationAccount" />
                         <input type="hidden" asp-for="Amount" />
+                        <input type="hidden" asp-for="OriginClientName" />
+                        <input type="hidden" asp-for="DestinationClientName" />
                         
                         <div class="d-grid gap-3 mt-4 d-md-flex justify-content-md-center">
                             <button type="submit" class="btn btn-success btn-lg px-5 fw-bold shadow">Sí, Procesar Transferencia</button>

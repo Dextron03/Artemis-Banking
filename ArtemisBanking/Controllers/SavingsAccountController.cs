@@ -1,6 +1,7 @@
 ﻿using Application.DTOs.SavingsAccount;
 using Application.Interfaces;
-using Application.ViewModels.SavingsAccount;
+using Application.ViewModels.SavingsAccount.Management;
+using Application.ViewModels.SavingsAccount.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -54,7 +55,7 @@ namespace ArtemisBanking.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> SelectClient(string searchIdentityNumber = null)
+        public async Task<IActionResult> SelectClient(string? searchIdentityNumber = null)
         {
             var clients = await _service.GetActiveClientsAsync(searchIdentityNumber);
             var vm = new SelectSavingsClientViewModel

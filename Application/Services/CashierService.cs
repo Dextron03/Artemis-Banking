@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Application.Interfaces;
-using Application.ViewModels;
+using Application.ViewModels.Cashier.Deposits;
+using Application.ViewModels.Cashier.Withdrawals;
+using Application.ViewModels.Cashier.Payments;
+using Application.ViewModels.Cashier.Transfers;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces;
@@ -19,9 +22,9 @@ namespace Application.Services
     public class CashierService : ICashierService
     {
         private readonly IGenericService<SavingsAccount> _accountService;
-        private readonly IGenericRepository<SavingsAccount> _accountRepository;
+        private readonly ISavingsAccountRepository _accountRepository;
         private readonly IGenericRepository<Transaction> _transactionRepository;
-        private readonly IGenericRepository<Loan> _loanRepository;
+        private readonly ILoanRepository _loanRepository;
         private readonly UserManager<AppUser> _userManager;
         private readonly IEmailService _emailService;
 
@@ -29,9 +32,9 @@ namespace Application.Services
         public CashierService(
             IGenericService<SavingsAccount> accountService,
             UserManager<AppUser> userManager,
-            IGenericRepository<SavingsAccount> accountRepository,
+            ISavingsAccountRepository accountRepository,
             IGenericRepository<Transaction> transactionRepository,
-            IGenericRepository<Loan> loanRepository,
+            ILoanRepository loanRepository,
             IEmailService emailService)
         {
             _accountService = accountService;
@@ -44,7 +47,6 @@ namespace Application.Services
 
         public async Task<ConfirmDepositViewModel> ValidateDepositAsync(DepositViewModel vm)
         {
-            // Buscamos por el Account Number
             var accounts = await _accountService.FindAsync(a => a.AccountNumber == vm.AccountNumber);
             var account = accounts.FirstOrDefault();
 
@@ -53,7 +55,12 @@ namespace Application.Services
                 return null;
             }
 
-            var user = await _userManager.FindByIdAsync(account.Id);
+            var user = await _userManager.FindByIdAsync(account.UserId);
+
+            if (user == null)
+            {
+                return null;
+            }
 
             return new ConfirmDepositViewModel
             {
@@ -66,33 +73,33 @@ namespace Application.Services
 
         public async Task<ConfirmTransferViewModel> ValidateTransferAsync(TransferViewModel vm)
         {
-            // 1. Validar que no se transfiera a sí mismo
             if (vm.OriginAccount == vm.DestinationAccount)
             {
                 return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "No puedes transferir a la misma cuenta." };
             }
         
-            // 2. Buscar ambas cuentas
             var originAccounts = await _accountRepository.FindAsync(a => a.AccountNumber == vm.OriginAccount);
             var originAccount = originAccounts.FirstOrDefault();
         
             var destAccounts = await _accountRepository.FindAsync(a => a.AccountNumber == vm.DestinationAccount);
             var destAccount = destAccounts.FirstOrDefault();
         
-            // 3. Validar existencia y estado
             if (originAccount == null || !originAccount.IsActive)
                 return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "La cuenta origen no existe o está inactiva." };
         
             if (destAccount == null || !destAccount.IsActive)
                 return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "La cuenta destino no existe o está inactiva." };
         
-            // 4. Validar fondos
             if (originAccount.Balance < vm.Amount)
                 return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "La cuenta origen no tiene fondos suficientes para esta transferencia." };
         
-            // 5. Buscar a los dueños para mostrar en la confirmación
             var originUser = await _userManager.FindByIdAsync(originAccount.UserId);
             var destUser = await _userManager.FindByIdAsync(destAccount.UserId);
+
+            if (originUser == null || destUser == null)
+            {
+                return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "No se pudo encontrar la información de los titulares de las cuentas." };
+            }
         
             return new ConfirmTransferViewModel
             {
@@ -117,6 +124,11 @@ namespace Application.Services
             }
 
             var user = await _userManager.FindByIdAsync(account.UserId);
+
+            if (user == null)
+            {
+                return null;
+            }
 
             return new ConfirmWithdrawalViewModel
             {
@@ -185,7 +197,7 @@ namespace Application.Services
                                 .FindAsync(a => a.AccountNumber == accountNumber);
             var account = accounts.FirstOrDefault();
 
-            if(accounts == null || !account.IsActive)
+            if(account == null || !account.IsActive)
             {
                 return false;
             }
@@ -231,39 +243,6 @@ namespace Application.Services
             }
 
             return true;
-        }
-    
-        public async Task<ConfirmTransferViewModel> ValidateTranferAsync(TransferViewModel vm)
-        {
-            if (vm.OriginAccount == vm.DestinationAccount)
-            {
-                return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "No puedes transferir a la misma cuenta." };
-            }
-        
-            var originAccounts = await _accountRepository.FindAsync(a => a.AccountNumber == vm.OriginAccount);
-            var originAccount = originAccounts.FirstOrDefault();
-
-            var destAccounts = await _accountRepository.FindAsync(a => a.AccountNumber == vm.DestinationAccount);
-            var destAccount = destAccounts.FirstOrDefault();
-
-            if (destAccount == null || !destAccount.IsActive)
-                return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "La cuenta destino no existe o está inactiva." };
-
-            if (originAccount.Balance < vm.Amount)
-                return new ConfirmTransferViewModel { HasError = true, ErrorMessage = "La cuenta origen no tiene fondos suficientes para esta transferencia." };
-    
-            var originUser = await _userManager.FindByIdAsync(originAccount.UserId);
-            var destUser = await _userManager.FindByIdAsync(destAccount.UserId);
-
-            return new ConfirmTransferViewModel
-            {
-                OriginAccount = vm.OriginAccount,
-                DestinationAccount = vm.DestinationAccount,
-                Amount = vm.Amount,
-                OriginClientName = $"{originUser.FirtsName} {originUser.LastName}",
-                DestinationClientName = $"{destUser.FirtsName} {destUser.LastName}",
-                HasError = false
-            };
         }
 
         public async Task<bool> ProcessTransferAsync(string originAccountNum, string destAccountNum, decimal amount)
@@ -324,51 +303,107 @@ namespace Application.Services
 
         public async Task<ConfirmPaymentViewModel> ValidatePaymentAsync(PaymentViewModel vm)
         {
-            // Buscamos el préstamo (Asumo que tu entidad Loan tiene un campo como AccountNumber o Id que el usuario digita)
-            // ADAPTA "l.Id.ToString()" o "l.AccountNumber" según cómo identifiques tus préstamos.
-            var loans = await _loanRepository.FindAsync(l => l.Id.ToString() == vm.LoanId);
+            var loans = await _loanRepository.FindAsync(l => l.IdentifierNumber == vm.LoanId);
             var loan = loans.FirstOrDefault();
 
-            if (loan == null) return null;
+            if (loan == null || !loan.IsActive) return null;
 
             var user = await _userManager.FindByIdAsync(loan.UserId);
 
+            if (user == null)
+            {
+                return null;
+            }
+
             return new ConfirmPaymentViewModel
             {
-                LoanId = vm.LoanId,
+                LoanId = loan.Id,
+                DisplayIdentifier = loan.IdentifierNumber,
                 Amount = vm.Amount,
                 ClientName = user.FirtsName,
                 ClientLastName = user.LastName
             };
         }
 
-        public async Task<bool> ProcessPaymentAsync(string loanNumber, decimal amount)
+        public async Task<bool> ProcessPaymentAsync(string loanIdOrIdentifier, decimal amount)
         {
-            var loans = await _loanRepository.FindAsync(l => l.Id.ToString() == loanNumber);
-            var loan = loans.FirstOrDefault();
+            // Intentar buscar por GUID primero, si falla, buscar por el número de 9 dígitos
+            var loan = await _loanRepository.GetByIdWithSharesAsync(loanIdOrIdentifier);
+            
+            if (loan == null)
+            {
+                var loans = await _loanRepository.FindAsync(l => l.IdentifierNumber == loanIdOrIdentifier, l => l.Shares);
+                loan = loans.FirstOrDefault();
+            }
 
             if (loan == null) return false;
 
-            // 1. Restamos la deuda del préstamo (Asumo que tienes un campo Amount, Debt o Balance en tu entidad Loan)
-            // ADAPTA "loan.Amount" por el nombre real de tu campo de deuda.
-            loan.LoanAmount -= amount; 
+            // Intentar obtener la cuenta principal, si no, cualquier cuenta activa del cliente
+            var accounts = await _accountRepository.FindAsync(a => a.UserId == loan.UserId && a.IsActive);
+            var accountForTransaction = accounts.FirstOrDefault(a => a.IsPrincipal) ?? accounts.FirstOrDefault();
+
+            if (accountForTransaction == null) return false;
+
+            decimal remainingAmount = amount;
+
+            // 1. Pagar cuotas pendientes (ordenadas por número de cuota)
+            var unpaidShares = loan.Shares
+                .Where(s => !s.IsPaid)
+                .OrderBy(s => s.QuotaNumber)
+                .ToList();
+
+            foreach (var share in unpaidShares)
+            {
+                if (remainingAmount >= share.ShareAmount)
+                {
+                    share.IsPaid = true;
+                    share.IsDelayed = false;
+                    remainingAmount -= share.ShareAmount;
+                }
+                else
+                {
+                    // Si el monto no alcanza para la cuota completa, se resta del saldo pero no se marca como pagada
+                    break;
+                }
+            }
+
+            // 2. Actualizar el saldo pendiente total del préstamo
+            loan.OutstandingAmount -= amount; 
+            if (loan.OutstandingAmount <= 0)
+            {
+                loan.OutstandingAmount = 0;
+                loan.IsActive = false;
+            }
+
+            // 3. Si todas las cuotas están pagadas y el balance es 0, desactivar
+            if (loan.Shares.All(s => s.IsPaid) && loan.OutstandingAmount == 0)
+            {
+                loan.IsActive = false;
+            }
+
+            // 4. Actualizar el estado de pago (Al Día / En Mora)
+            // Si no quedan cuotas atrasadas, el préstamo vuelve a estar "Al Día"
+            if (!loan.Shares.Any(s => s.IsDelayed))
+            {
+                loan.PaymentStatus = PaymentStatusType.AlDia;
+            }
+
             _loanRepository.Update(loan);
 
-            // 2. Registramos el historial (El dinero entra al banco, así que es un Crédito a favor del banco)
             var transaction = new Transaction
             {
-                SavingAccountId = loan.Id, // O déjalo nulo si la transacción solo se ata a cuentas de ahorro
+                SavingAccountId = accountForTransaction.Id, 
                 Amount = amount,
-                Type = TransactionType.Payment, // Asegúrate de tener "Payment" o "Pago" en tu Enum
+                Type = TransactionType.Payment, 
                 Origin = "EFECTIVO (CAJA)",
-                Beneficiary = $"PRÉSTAMO {loanNumber}",
-                Status = "APROBADA"
+                Beneficiary = $"PRÉSTAMO {loan.IdentifierNumber}",
+                Status = "APROBADA",
+                Concept = $"Pago de préstamo {loan.IdentifierNumber} realizado en caja."
             };
 
             await _transactionRepository.AddAsync(transaction);
             await _loanRepository.SaveChangesAsync();
 
-            // 3. El correo de confirmación
             var user = await _userManager.FindByIdAsync(loan.UserId);
             if (user != null && !string.IsNullOrEmpty(user.Email))
             {
@@ -376,9 +411,9 @@ namespace Application.Services
                     <h3>Hola {user.FirtsName},</h3>
                     <p>Hemos recibido el pago de su préstamo.</p>
                     <ul>
-                        <li><strong>Préstamo N°:</strong> {loanNumber}</li>
+                        <li><strong>Préstamo N°:</strong> {loan.IdentifierNumber}</li>
                         <li><strong>Monto pagado:</strong> RD$ {amount.ToString("N2")}</li>
-                        <li><strong>Nuevo balance adeudado:</strong> RD$ {loan.LoanAmount.ToString("N2")}</li>
+                        <li><strong>Nuevo balance adeudado:</strong> RD$ {loan.OutstandingAmount.ToString("N2")}</li>
                     </ul>";
                 await _emailService.SendEmailAsync(user.Email, "Pago de Préstamo Recibido", body);
             }

@@ -34,6 +34,51 @@ namespace Application.Services
             _loanRepo = loanRepo;
         }
 
+        public async Task<(IEnumerable<CreditCardListDto> Items, int TotalCount)> GetPagedAsync(
+            int page, int pageSize, string? searchIdentity = null, bool? isActive = null)
+        {
+            var allCards = (await _cardRepo.GetAllAsync()).ToList();
+            var users = _userManager.Users.ToList();
+
+            var filtered = new List<CreditCard>();
+
+            foreach (var card in allCards)
+            {
+                var user = users.FirstOrDefault(u => u.Id == card.UserId);
+                if (user == null) continue;
+
+                // Búsqueda por Cédula (Parcial)
+                if (!string.IsNullOrWhiteSpace(searchIdentity))
+                {
+                    if (!user.IdentityNumber.Contains(searchIdentity.Trim()))
+                        continue;
+                }
+
+                // Filtrado por Estado
+                if (isActive.HasValue)
+                {
+                    if (card.IsActive != isActive.Value)
+                        continue;
+                }
+
+                filtered.Add(card);
+            }
+
+            var sorted = filtered
+                .OrderByDescending(c => c.IsActive)
+                .ThenByDescending(c => c.ExpireDate)
+                .ToList();
+
+            int total = sorted.Count;
+            var items = sorted
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var dtos = await MapToListDtosAsync(items);
+            return (dtos, total);
+        }
+
         public async Task<(IEnumerable<CreditCardListDto> Items, int TotalCount)>
             GetActivePagedAsync(int page, int pageSize)
         {

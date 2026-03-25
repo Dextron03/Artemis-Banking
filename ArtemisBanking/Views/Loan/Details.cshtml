@@ -1,5 +1,4 @@
-﻿@using Application.ViewModels.Loan
-@model LoanDetailsViewModel
+﻿@model LoanDetailsViewModel
 @{
     ViewData["Title"] = "Tabla de Amortización";
     int paidCount = Model.Shares.Count(s => s.IsPaid);
@@ -20,36 +19,44 @@
         </a>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-md-3">
+    <div class="row g-3 mb-4 justify-content-center">
+        <div class="col-6 col-md-2">
             <div class="card text-center shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small mb-1">Capital prestado</div>
-                    <div class="fs-5 fw-bold text-success">RD$@Model.LoanAmount.ToString("N2")</div>
+                    <div class="fs-6 fw-bold text-success">RD$@Model.LoanAmount.ToString("N2")</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-6 col-md-2">
+            <div class="card text-center shadow-sm h-100 border-primary">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Balance pendiente</div>
+                    <div class="fs-6 fw-bold text-primary">RD$@Model.OutstandingAmount.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
             <div class="card text-center shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small mb-1">Cuota mensual fija</div>
-                    <div class="fs-5 fw-bold text-primary">RD$@Model.MonthlyPayment.ToString("N2")</div>
+                    <div class="fs-6 fw-bold text-dark">RD$@Model.MonthlyPayment.ToString("N2")</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-6 col-md-2">
             <div class="card text-center shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small mb-1">Tasa de interés anual</div>
-                    <div class="fs-5 fw-bold text-warning">@Model.InterestRate.ToString("N2")%</div>
+                    <div class="fs-6 fw-bold text-warning">@Model.InterestRate.ToString("N2")%</div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
+        <div class="col-6 col-md-2">
             <div class="card text-center shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small mb-1">Plazo</div>
-                    <div class="fs-5 fw-bold">@Model.TermMonths meses</div>
+                    <div class="fs-6 fw-bold">@Model.TermMonths meses</div>
                 </div>
             </div>
         </div>

@@ -1,6 +1,7 @@
 ﻿using Application.DTOs.Loan;
 using Application.Interfaces;
-using Application.ViewModels.Loan;
+using Application.ViewModels.Loan.Management;
+using Application.ViewModels.Loan.Queries;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

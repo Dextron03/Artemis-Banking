@@ -1,6 +1,7 @@
 ﻿using Application.DTOs.SavingsAccount;
 using Application.Interfaces;
-using Application.ViewModels.SavingsAccount;
+using Application.ViewModels.SavingsAccount.Management;
+using Application.ViewModels.SavingsAccount.Queries;
 using AutoMapper;
 using Domain.Entities;
 using Domain.Enums;
@@ -33,45 +34,46 @@ namespace Application.Services
 
         public async Task<PagedSavingsAccountDto> GetPagedAsync( int page, int pageSize, string? searchIdentityNumber, string? filterStatus, string? filterType)
         {
-            IEnumerable<SavingsAccount> query;
+            var allAccounts = await _savingsRepo.GetAllAsync();
+            var users = _userManager.Users.ToList();
 
-            if (!string.IsNullOrWhiteSpace(searchIdentityNumber))
+            var filtered = new List<SavingsAccount>();
+
+            foreach (var acc in allAccounts)
             {
-                var user = _userManager.Users
-                    .FirstOrDefault(u => u.IdentityNumber == searchIdentityNumber.Trim());
-                if (user == null)
-                    return new PagedSavingsAccountDto
-                    {
-                        SearchIdentityNumber = searchIdentityNumber,
-                        FilterStatus = filterStatus,
-                        FilterType = filterType
-                    };
-                query = await _savingsRepo.FindAsync(s => s.UserId == user.Id);
+                var user = users.FirstOrDefault(u => u.Id == acc.UserId);
+                if (user == null) continue;
+
+                // Búsqueda por Cédula o Nombre (Parcial)
+                if (!string.IsNullOrWhiteSpace(searchIdentityNumber))
+                {
+                    string term = searchIdentityNumber.Trim().ToLower();
+                    bool match = user.IdentityNumber.Contains(term) ||
+                                 user.FirtsName.ToLower().Contains(term) ||
+                                 user.LastName.ToLower().Contains(term);
+                    if (!match) continue;
+                }
+
+                // Filtrado por Estado
+                if (!string.IsNullOrWhiteSpace(filterStatus) && filterStatus != "all")
+                {
+                    bool active = filterStatus == "active";
+                    if (acc.IsActive != active) continue;
+                }
+
+                // Filtrado por Tipo
+                if (!string.IsNullOrWhiteSpace(filterType) && filterType != "all")
+                {
+                    bool principal = filterType == "principal";
+                    if (acc.IsPrincipal != principal) continue;
+                }
+
+                filtered.Add(acc);
             }
-            else
-            {
-                query = await _savingsRepo.GetAllAsync();
-            }
 
-            query = filterStatus switch
-            {
-                "active" => query.Where(s => s.IsActive),
-                "cancelled" => query.Where(s => !s.IsActive),
-                _ => string.IsNullOrWhiteSpace(searchIdentityNumber)
-                                   ? query.Where(s => s.IsActive)
-                                   : query
-            };
+            var query = filtered.AsQueryable();
 
-            query = filterType switch
-            {
-                "principal" => query.Where(s => s.IsPrincipal),
-                "secondary" => query.Where(s => !s.IsPrincipal),
-                _ => query
-            };
-
-            query = string.IsNullOrWhiteSpace(searchIdentityNumber)
-                ? query.OrderByDescending(s => s.CreatedAt)
-                : query.OrderByDescending(s => s.IsActive).ThenByDescending(s => s.CreatedAt);
+            query = query.OrderByDescending(s => s.IsActive).ThenByDescending(s => s.CreatedAt);
 
             var list = query.ToList();
             int total = list.Count;
@@ -83,8 +85,8 @@ namespace Application.Services
             var rows = new List<SavingsAccountListDto>();
             foreach (var acc in paged)
             {
+                var user = users.FirstOrDefault(u => u.Id == acc.UserId);
                 var dto = _mapper.Map<SavingsAccountListDto>(acc);
-                var user = await _userManager.FindByIdAsync(acc.UserId);
                 dto.ClientFullName = user != null
                     ? $"{user.FirtsName} {user.LastName}"
                     : "Desconocido";

@@ -15,7 +15,7 @@ namespace Infrastructure.Identity.Seeds
             var defaultUser = new AppUser
             {
                 UserName = "Kevin",
-                Email = "MrGarcia@gmail.com",
+                Email = "kevingarcia22120514@gmail.com",
                 FirtsName = "Therian69",
                 LastName = "Garcia",
                 IdentityNumber = "00000000000",

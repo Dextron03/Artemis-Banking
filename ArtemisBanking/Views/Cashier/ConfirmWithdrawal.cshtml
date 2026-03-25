@@ -1,4 +1,4 @@
-@model Application.ViewModels.ConfirmWithdrawalViewModel;
+@model Application.ViewModels.Cashier.Withdrawals.ConfirmWithdrawalViewModel
 @{
     ViewData["Title"] = "Confirmar Retiro";
 }
@@ -23,6 +23,8 @@
                     <form asp-controller="Cashier" asp-action="ProcessWithdrawal" method="post">
                         <input type="hidden" asp-for="AccountNumber" />
                         <input type="hidden" asp-for="Amount" />
+                        <input type="hidden" asp-for="ClientName" />
+                        <input type="hidden" asp-for="ClientLastName" />
                         
                         <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-center">
                             <button type="submit" class="btn btn-danger px-4 fw-bold shadow">Sí, Confirmar Retiro</button>

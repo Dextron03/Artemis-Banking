@@ -1,5 +1,4 @@
-﻿@using Application.ViewModels.User
-@model UserIndexViewModel
+﻿@model UserIndexViewModel
 
 <h2>Gestión de Usuarios</h2>
 @if (TempData["Success"] != null)
@@ -15,12 +14,15 @@
     <a asp-action="Create" class="btn btn-primary">+ Nuevo Usuario</a>
 
     <form method="get" class="d-flex gap-2">
+        <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="Buscar por nombre o cédula..." />
         <select name="role" class="form-select" onchange="this.form.submit()">
             <option value="" selected="@(Model.SelectedRole == null)">Todos los roles</option>
             <option value="Administrador" selected="@(Model.SelectedRole == "Administrador")">Administrador</option>
             <option value="Cajero" selected="@(Model.SelectedRole == "Cajero")">Cajero</option>
             <option value="Cliente" selected="@(Model.SelectedRole == "Cliente")">Cliente</option>
         </select>
+        <button type="submit" class="btn btn-outline-primary">Buscar</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Limpiar</a>
         <input type="hidden" name="page" value="1" />
     </form>
 </div>
@@ -100,7 +102,8 @@
                 <a class="page-link"
                    asp-action="Index"
                    asp-route-page="@(Model.CurrentPage - 1)"
-                   asp-route-role="@Model.SelectedRole">
+                   asp-route-role="@Model.SelectedRole"
+                   asp-route-search="@Model.SearchTerm">
                     &laquo; Anterior
                 </a>
             </li>
@@ -111,7 +114,8 @@
                     <a class="page-link"
                        asp-action="Index"
                        asp-route-page="@i"
-                       asp-route-role="@Model.SelectedRole">
+                       asp-route-role="@Model.SelectedRole"
+                       asp-route-search="@Model.SearchTerm">
                         @i
                     </a>
                 </li>
@@ -121,7 +125,8 @@
                 <a class="page-link"
                    asp-action="Index"
                    asp-route-page="@(Model.CurrentPage + 1)"
-                   asp-route-role="@Model.SelectedRole">
+                   asp-route-role="@Model.SelectedRole"
+                   asp-route-search="@Model.SearchTerm">
                     Siguiente &raquo;
                 </a>
             </li>

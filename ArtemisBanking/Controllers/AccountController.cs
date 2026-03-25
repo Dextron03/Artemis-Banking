@@ -77,7 +77,7 @@ namespace ArtemisBanking.Controllers
             if (roles.Contains("Cajero"))
                 return RedirectToAction("Index", "Cashier");
             if (roles.Contains("Cliente"))
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "DashboardCliente");
 
             await _signInManager.SignOutAsync();
             ModelState.AddModelError(string.Empty, "Tu usuario no tiene un rol asignado. Contacta al administrador.");
@@ -104,7 +104,7 @@ namespace ArtemisBanking.Controllers
             if (User.IsInRole("Administrador"))
                 return RedirectToAction("Index", "DashboardAdmin");
             if (User.IsInRole("Cajero"))
-                return RedirectToAction("Index", "DashboardCajero");
+                return RedirectToAction("Index", "Cashier");
             if (User.IsInRole("Cliente"))
                 return RedirectToAction("Index", "DashboardCliente");
 

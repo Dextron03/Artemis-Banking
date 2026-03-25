@@ -28,37 +28,39 @@ namespace Application.Services
 
         public async Task<PagedLoansDto> GetPagedAsync(LoanFilterDto filter)
         {
-            filter.PageSize = Math.Min(filter.PageSize, 20);
+            filter.PageSize = Math.Min(filter.PageSize, 50);
 
-            var all = (await _loanRepo.GetAllWithSharesAsync()).ToList();
+            var allLoans = (await _loanRepo.GetAllWithSharesAsync()).ToList();
             var result = new List<LoanSummaryDto>();
 
-            foreach (var loan in all)
+            // Obtener todos los usuarios de una vez para evitar N+1
+            var users = _userManager.Users.ToList();
+
+            foreach (var loan in allLoans)
             {
-                if (string.IsNullOrWhiteSpace(filter.IdentityNumber))
+                var user = users.FirstOrDefault(u => u.Id == loan.UserId);
+                if (user == null) continue;
+
+                // Filtrado por Cédula (Parcial)
+                if (!string.IsNullOrWhiteSpace(filter.IdentityNumber))
                 {
-                    bool soloActivos = filter.IsActive ?? true;
-                    if (loan.IsActive != soloActivos) continue;
-                }
-                else
-                {
-                    if (filter.IsActive.HasValue && loan.IsActive != filter.IsActive.Value)
+                    if (!user.IdentityNumber.Contains(filter.IdentityNumber.Trim()))
                         continue;
                 }
 
-                var user = await _userManager.FindByIdAsync(loan.UserId);
-                if (user == null) continue;
-
-                if (!string.IsNullOrWhiteSpace(filter.IdentityNumber) &&
-                    user.IdentityNumber.Trim() != filter.IdentityNumber.Trim())
-                    continue;
+                // Filtrado por Estado (Activo/Inactivo/Todos)
+                if (filter.IsActive.HasValue)
+                {
+                    if (loan.IsActive != filter.IsActive.Value)
+                        continue;
+                }
 
                 result.Add(MapToSummary(loan, user));
             }
 
             if (string.IsNullOrWhiteSpace(filter.IdentityNumber))
             {
-                result = result.OrderByDescending(l => l.Id).ToList();
+                result = result.OrderByDescending(l => l.IsActive).ThenByDescending(l => l.Id).ToList();
             }
             else
             {
@@ -136,6 +138,7 @@ namespace Application.Services
                 InterestRate = loan.InterestRate,
                 TermMonths = loan.TermMonths,
                 MonthlyPayment = loan.MonthlyPayment,
+                OutstandingAmount = loan.OutstandingAmount,
                 Shares = shares
             };
         }
@@ -338,20 +341,26 @@ namespace Application.Services
             return loans.Count == 0 ? 0m : loans.Average(l => l.OutstandingAmount);
         }
 
-        private static LoanSummaryDto MapToSummary(Loan loan, AppUser user) => new()
+        private static LoanSummaryDto MapToSummary(Loan loan, AppUser user)
         {
-            Id = loan.Id,
-            IdentifierNumber = loan.IdentifierNumber,
-            ClientName = $"{user.FirtsName} {user.LastName}",
-            IdentityNumber = user.IdentityNumber,
-            LoanAmount = loan.LoanAmount,
-            TotalInstallments = loan.TermMonths,
-            PaidInstallments = loan.Shares.Count(s => s.IsPaid),
-            PendingAmount = loan.OutstandingAmount,
-            InterestRate = loan.InterestRate,
-            Months = loan.TermMonths,
-            PaymentStatus = loan.PaymentStatus == PaymentStatusType.AlDia ? "Al Día" : "En Mora",
-            IsActive = loan.IsActive
-        };
+            // El conteo de cuotas pagadas depende de que las cuotas estén cargadas
+            int paidCount = loan.Shares != null ? loan.Shares.Count(s => s.IsPaid) : 0;
+
+            return new LoanSummaryDto
+            {
+                Id = loan.Id,
+                IdentifierNumber = loan.IdentifierNumber,
+                ClientName = $"{user.FirtsName} {user.LastName}",
+                IdentityNumber = user.IdentityNumber,
+                LoanAmount = loan.LoanAmount,
+                TotalInstallments = loan.TermMonths,
+                PaidInstallments = paidCount,
+                PendingAmount = loan.OutstandingAmount,
+                InterestRate = loan.InterestRate,
+                Months = loan.TermMonths,
+                PaymentStatus = loan.PaymentStatus == PaymentStatusType.AlDia ? "Al Día" : "En Mora",
+                IsActive = loan.IsActive
+            };
+        }
     }
 }
