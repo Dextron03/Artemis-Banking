@@ -11,43 +11,40 @@ using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces;
 using Infrastructure.Identity.Entities;
-using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Identity.Client;
 using Shared.Services;
 
 namespace Application.Services
 {
     public class CashierService : ICashierService
     {
-        private readonly IGenericService<SavingsAccount> _accountService;
         private readonly ISavingsAccountRepository _accountRepository;
         private readonly IGenericRepository<Transaction> _transactionRepository;
         private readonly ILoanRepository _loanRepository;
+        private readonly ICreditCardRepository _cardRepository;
         private readonly UserManager<AppUser> _userManager;
         private readonly IEmailService _emailService;
 
 
         public CashierService(
-            IGenericService<SavingsAccount> accountService,
             UserManager<AppUser> userManager,
             ISavingsAccountRepository accountRepository,
             IGenericRepository<Transaction> transactionRepository,
             ILoanRepository loanRepository,
+            ICreditCardRepository cardRepository,
             IEmailService emailService)
         {
-            _accountService = accountService;
             _userManager = userManager;
             _accountRepository = accountRepository;
             _transactionRepository = transactionRepository;
             _loanRepository = loanRepository;
+            _cardRepository = cardRepository;
             _emailService = emailService;
         }
 
         public async Task<ConfirmDepositViewModel> ValidateDepositAsync(DepositViewModel vm)
         {
-            var accounts = await _accountService.FindAsync(a => a.AccountNumber == vm.AccountNumber);
+            var accounts = await _accountRepository.FindAsync(a => a.AccountNumber == vm.AccountNumber);
             var account = accounts.FirstOrDefault();
 
             if(account == null || !account.IsActive)
@@ -159,8 +156,9 @@ namespace Application.Services
                 Amount = amount,
                 Type = TransactionType.Withdrawal,
                 Origin = accountNumber,
-                Beneficiary = account.AccountNumber,
-                Status = "APROBADA"
+                Beneficiary = "RETIRO",
+                Status = "APROBADA",
+                Concept = "Retiro de efectivo en caja"
             };
 
             await _transactionRepository.AddAsync(transaction);
@@ -177,13 +175,12 @@ namespace Application.Services
 
                 string body = $@"
                     <h3>Hola {user.FirtsName},</h3>
-                    <p>Se ha realizado un retiro de su cuenta de ahorros.</p>
+                    <p>Se ha realizado un retiro de su cuenta de ahorros en caja.</p>
                     <ul>
                         <li><strong>Cuenta:</strong> terminada en {last4Digits}</li>
                         <li><strong>Monto retirado:</strong> RD$ {amount.ToString("N2")}</li>
                         <li><strong>Fecha y hora exacta:</strong> {DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss tt")}</li>
-                    </ul>
-                    <p>Si usted no reconce esta transacción, contáctenos de inmediato.</p>";
+                    </ul>";
                 
                 await _emailService.SendEmailAsync(user.Email, subject, body);
             }
@@ -193,8 +190,7 @@ namespace Application.Services
 
         public async Task<bool> ProcessDepositAsync(string accountNumber, decimal amount)
         {
-            var accounts = await _accountRepository
-                                .FindAsync(a => a.AccountNumber == accountNumber);
+            var accounts = await _accountRepository.FindAsync(a => a.AccountNumber == accountNumber);
             var account = accounts.FirstOrDefault();
 
             if(account == null || !account.IsActive)
@@ -211,14 +207,14 @@ namespace Application.Services
                 SavingAccountId = account.Id,
                 Amount = amount,
                 Type = TransactionType.Deposit,
-                Origin = accountNumber,
-                Beneficiary = account.AccountNumber,
-                Status = "APROBADA"
+                Origin = "DEPÓSITO",
+                Beneficiary = accountNumber,
+                Status = "APROBADA",
+                Concept = "Depósito de efectivo en caja"
             };
 
             await _transactionRepository.AddAsync(transaction);
-
-            await _transactionRepository.SaveChangesAsync();
+            await _accountRepository.SaveChangesAsync();
 
             var user = await _userManager.FindByIdAsync(account.UserId);
             if(user != null && !string.IsNullOrEmpty(user.Email))
@@ -231,13 +227,12 @@ namespace Application.Services
 
                 string body = $@"
                     <h3>Hola {user.FirtsName},</h3>
-                    <p>Se ha realizado un depósito en su cuenta de ahorros.</p>
+                    <p>Se ha realizado un depósito en su cuenta de ahorros en caja.</p>
                     <ul>
                         <li><strong>Cuenta:</strong> terminada en {last4Digits}</li>
                         <li><strong>Monto depositado:</strong> RD$ {amount.ToString("N2")}</li>
                         <li><strong>Fecha y hora exacta:</strong> {DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss tt")}</li>
-                    </ul>
-                    <p>Gracias por utilizar Artemis Banking.</p>";
+                    </ul>";
                 
                 await _emailService.SendEmailAsync(user.Email, subject, body);
             }
@@ -265,7 +260,8 @@ namespace Application.Services
                 Type = TransactionType.Transfer,
                 Origin = originAccountNum,
                 Beneficiary = destAccountNum,
-                Status = "APROBADA"
+                Status = "APROBADA",
+                Concept = $"Transferencia enviada a cuenta {destAccountNum}"
             };
     
             var creditTx = new Transaction
@@ -275,7 +271,8 @@ namespace Application.Services
                 Type = TransactionType.Transfer,
                 Origin = originAccountNum,
                 Beneficiary = destAccountNum,
-                Status = "APROBADA"
+                Status = "APROBADA",
+                Concept = $"Transferencia recibida desde cuenta {originAccountNum}"
             };
     
             await _transactionRepository.AddAsync(debitTx);
@@ -292,11 +289,93 @@ namespace Application.Services
                     <ul>
                         <li><strong>Monto:</strong> RD$ {amount.ToString("N2")}</li>
                         <li><strong>Cuenta Destino:</strong> {destAccountNum}</li>
-                        <li><strong>Fecha:</strong> {DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss tt")}</li>
                     </ul>";
                 await _emailService.SendEmailAsync(originUser.Email, "Transferencia Realizada", body);
             }
     
+
+            return true;
+        }
+
+        public async Task<ConfirmCardPaymentViewModel> ValidateCardPaymentAsync(CardPaymentViewModel vm)
+        {
+            var accounts = await _accountRepository.FindAsync(a => a.AccountNumber == vm.OriginAccountNumber);
+            var account = accounts.FirstOrDefault();
+
+            var cards = await _cardRepository.FindAsync(c => c.IdentifierNumber == vm.CardNumber);
+            var card = cards.FirstOrDefault();
+
+            if (account == null || !account.IsActive || card == null || !card.IsActive)
+            {
+                return null;
+            }
+
+            var user = await _userManager.FindByIdAsync(card.UserId);
+            if (user == null) return null;
+
+            return new ConfirmCardPaymentViewModel
+            {
+                OriginAccountNumber = vm.OriginAccountNumber,
+                CardNumber = vm.CardNumber,
+                DisplayCardNumber = $"**** **** **** {vm.CardNumber.Substring(vm.CardNumber.Length - 4)}",
+                Amount = vm.Amount,
+                ClientName = user.FirtsName,
+                ClientLastName = user.LastName,
+                HasInsufficientFunds = account.Balance < vm.Amount
+            };
+        }
+
+        public async Task<bool> ProcessCardPaymentAsync(string originAccountNum, string cardNumber, decimal amount)
+        {
+            var accounts = await _accountRepository.FindAsync(a => a.AccountNumber == originAccountNum);
+            var account = accounts.FirstOrDefault();
+
+            var cards = await _cardRepository.FindAsync(c => c.IdentifierNumber == cardNumber);
+            var card = cards.FirstOrDefault();
+
+            if (account == null || !account.IsActive || card == null || !card.IsActive || account.Balance < amount)
+            {
+                return false;
+            }
+
+            // Regla: No se puede pagar más de la deuda actual
+            decimal paymentAmount = Math.Min(amount, card.AmountDebt);
+            if (paymentAmount <= 0) return false;
+
+            account.SetBalance(account.Balance - paymentAmount);
+            card.PayDebt(paymentAmount);
+
+            _accountRepository.Update(account);
+            _cardRepository.Update(card);
+
+            var transaction = new Transaction
+            {
+                SavingAccountId = account.Id,
+                Amount = paymentAmount,
+                Type = TransactionType.Payment,
+                Origin = originAccountNum,
+                Beneficiary = $"TARJETA {card.IdentifierNumber.Substring(card.IdentifierNumber.Length - 4)}",
+                Status = "APROBADA",
+                Concept = $"Pago a tarjeta de crédito ****{card.IdentifierNumber.Substring(card.IdentifierNumber.Length - 4)} en caja"
+            };
+
+            await _transactionRepository.AddAsync(transaction);
+            await _accountRepository.SaveChangesAsync();
+
+            var user = await _userManager.FindByIdAsync(card.UserId);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+                string last4 = card.IdentifierNumber.Substring(card.IdentifierNumber.Length - 4);
+                string body = $@"
+                    <h3>Hola {user.FirtsName},</h3>
+                    <p>Se ha realizado un pago a su tarjeta de crédito.</p>
+                    <ul>
+                        <li><strong>Tarjeta:</strong> terminada en {last4}</li>
+                        <li><strong>Monto pagado:</strong> RD$ {paymentAmount.ToString("N2")}</li>
+                        <li><strong>Balance pendiente:</strong> RD$ {card.AmountDebt.ToString("N2")}</li>
+                    </ul>";
+                await _emailService.SendEmailAsync(user.Email, "Pago de Tarjeta Recibido", body);
+            }
 
             return true;
         }
@@ -306,51 +385,42 @@ namespace Application.Services
             var loans = await _loanRepository.FindAsync(l => l.IdentifierNumber == vm.LoanId);
             var loan = loans.FirstOrDefault();
 
-            if (loan == null || !loan.IsActive) return null;
+            var accounts = await _accountRepository.FindAsync(a => a.AccountNumber == vm.OriginAccountNumber);
+            var account = accounts.FirstOrDefault();
+
+            if (loan == null || !loan.IsActive || account == null || !account.IsActive) return null;
 
             var user = await _userManager.FindByIdAsync(loan.UserId);
-
-            if (user == null)
-            {
-                return null;
-            }
+            if (user == null) return null;
 
             return new ConfirmPaymentViewModel
             {
                 LoanId = loan.Id,
+                OriginAccountNumber = vm.OriginAccountNumber,
                 DisplayIdentifier = loan.IdentifierNumber,
                 Amount = vm.Amount,
                 ClientName = user.FirtsName,
-                ClientLastName = user.LastName
+                ClientLastName = user.LastName,
+                HasInsufficientFunds = account.Balance < vm.Amount
             };
         }
 
-        public async Task<bool> ProcessPaymentAsync(string loanIdOrIdentifier, decimal amount)
+        public async Task<bool> ProcessPaymentAsync(string originAccountNum, string loanIdOrIdentifier, decimal amount)
         {
-            // Intentar buscar por GUID primero, si falla, buscar por el número de 9 dígitos
             var loan = await _loanRepository.GetByIdWithSharesAsync(loanIdOrIdentifier);
-            
             if (loan == null)
             {
                 var loans = await _loanRepository.FindAsync(l => l.IdentifierNumber == loanIdOrIdentifier, l => l.Shares);
                 loan = loans.FirstOrDefault();
             }
 
-            if (loan == null) return false;
+            var accounts = await _accountRepository.FindAsync(a => a.AccountNumber == originAccountNum);
+            var account = accounts.FirstOrDefault();
 
-            // Intentar obtener la cuenta principal, si no, cualquier cuenta activa del cliente
-            var accounts = await _accountRepository.FindAsync(a => a.UserId == loan.UserId && a.IsActive);
-            var accountForTransaction = accounts.FirstOrDefault(a => a.IsPrincipal) ?? accounts.FirstOrDefault();
-
-            if (accountForTransaction == null) return false;
+            if (loan == null || !loan.IsActive || account == null || !account.IsActive || account.Balance < amount) return false;
 
             decimal remainingAmount = amount;
-
-            // 1. Pagar cuotas pendientes (ordenadas por número de cuota)
-            var unpaidShares = loan.Shares
-                .Where(s => !s.IsPaid)
-                .OrderBy(s => s.QuotaNumber)
-                .ToList();
+            var unpaidShares = loan.Shares.Where(s => !s.IsPaid).OrderBy(s => s.QuotaNumber).ToList();
 
             foreach (var share in unpaidShares)
             {
@@ -360,14 +430,9 @@ namespace Application.Services
                     share.IsDelayed = false;
                     remainingAmount -= share.ShareAmount;
                 }
-                else
-                {
-                    // Si el monto no alcanza para la cuota completa, se resta del saldo pero no se marca como pagada
-                    break;
-                }
+                else break;
             }
 
-            // 2. Actualizar el saldo pendiente total del préstamo
             loan.OutstandingAmount -= amount; 
             if (loan.OutstandingAmount <= 0)
             {
@@ -375,34 +440,26 @@ namespace Application.Services
                 loan.IsActive = false;
             }
 
-            // 3. Si todas las cuotas están pagadas y el balance es 0, desactivar
-            if (loan.Shares.All(s => s.IsPaid) && loan.OutstandingAmount == 0)
-            {
-                loan.IsActive = false;
-            }
+            if (loan.Shares.All(s => s.IsPaid) && loan.OutstandingAmount == 0) loan.IsActive = false;
+            if (!loan.Shares.Any(s => s.IsDelayed)) loan.PaymentStatus = PaymentStatusType.AlDia;
 
-            // 4. Actualizar el estado de pago (Al Día / En Mora)
-            // Si no quedan cuotas atrasadas, el préstamo vuelve a estar "Al Día"
-            if (!loan.Shares.Any(s => s.IsDelayed))
-            {
-                loan.PaymentStatus = PaymentStatusType.AlDia;
-            }
-
+            account.SetBalance(account.Balance - amount);
+            _accountRepository.Update(account);
             _loanRepository.Update(loan);
 
             var transaction = new Transaction
             {
-                SavingAccountId = accountForTransaction.Id, 
+                SavingAccountId = account.Id, 
                 Amount = amount,
                 Type = TransactionType.Payment, 
-                Origin = "EFECTIVO (CAJA)",
+                Origin = originAccountNum,
                 Beneficiary = $"PRÉSTAMO {loan.IdentifierNumber}",
                 Status = "APROBADA",
-                Concept = $"Pago de préstamo {loan.IdentifierNumber} realizado en caja."
+                Concept = $"Pago de préstamo {loan.IdentifierNumber} en caja"
             };
 
             await _transactionRepository.AddAsync(transaction);
-            await _loanRepository.SaveChangesAsync();
+            await _accountRepository.SaveChangesAsync();
 
             var user = await _userManager.FindByIdAsync(loan.UserId);
             if (user != null && !string.IsNullOrEmpty(user.Email))
@@ -413,7 +470,6 @@ namespace Application.Services
                     <ul>
                         <li><strong>Préstamo N°:</strong> {loan.IdentifierNumber}</li>
                         <li><strong>Monto pagado:</strong> RD$ {amount.ToString("N2")}</li>
-                        <li><strong>Nuevo balance adeudado:</strong> RD$ {loan.OutstandingAmount.ToString("N2")}</li>
                     </ul>";
                 await _emailService.SendEmailAsync(user.Email, "Pago de Préstamo Recibido", body);
             }
@@ -421,5 +477,4 @@ namespace Application.Services
             return true;
         }
     }
-
 }

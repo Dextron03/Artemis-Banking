@@ -23,12 +23,14 @@
                     <div class="alert alert-warning text-start shadow-sm border-warning">
                         <p class="mb-1"><strong>Titular del préstamo:</strong> @Model.ClientName @Model.ClientLastName</p>
                         <p class="mb-1"><strong>Préstamo N°:</strong> @Model.DisplayIdentifier</p>
+                        <p class="mb-1"><strong>Cuenta Origen:</strong> @Model.OriginAccountNumber</p>
                         <hr />
                         <p class="mb-0 fs-5 fw-bold text-dark"><strong>Monto a abonar:</strong> RD$ @Model.Amount.ToString("N2")</p>
                     </div>
 
                     <form asp-controller="Cashier" asp-action="ProcessPayment" method="post">
                         <input type="hidden" asp-for="LoanId" />
+                        <input type="hidden" asp-for="OriginAccountNumber" />
                         <input type="hidden" asp-for="DisplayIdentifier" />
                         <input type="hidden" asp-for="Amount" />
                         <input type="hidden" asp-for="ClientName" />

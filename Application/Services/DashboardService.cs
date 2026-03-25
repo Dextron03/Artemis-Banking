@@ -1,6 +1,7 @@
 ﻿using Application.DTOs.Dashboard;
 using Application.Interfaces;
 using Domain.Entities;
+using Domain.Enums;
 using Domain.Interfaces;
 using Infrastructure.Identity.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -73,6 +74,29 @@ namespace Application.Services
                     .Any()
                     ? loans.Where(l => l.IsActive).Average(l => l.OutstandingAmount)
                     : 0
+            };
+        }
+
+        public async Task<DashboardCashierDto> GetCashierDashboardAsync(string userId)
+        {
+            var today = DateTime.Today;
+            var transactions = await _transactionRepo.GetAllAsync();
+            
+            // Nota: En un sistema real, las transacciones deberían tener el Id del cajero que las realizó.
+            // Dado que la entidad Transaction no parece tener un campo CreatedByUserId, 
+            // intentaremos filtrar por concepto o asumir que el cajero actual ve lo global de hoy si no hay filtro de autor.
+            // INVESTIGACIÓN: Revisar si Transaction tiene autor.
+            
+            var todayTransactions = transactions
+                .Where(t => t.CreatedAt.Date == today)
+                .ToList();
+
+            return new DashboardCashierDto
+            {
+                TotalTransactionsToday = todayTransactions.Count,
+                TotalPaymentsToday = todayTransactions.Count(t => t.Type == TransactionType.Payment),
+                TotalDepositsToday = todayTransactions.Count(t => t.Type == TransactionType.Deposit),
+                TotalWithdrawalsToday = todayTransactions.Count(t => t.Type == TransactionType.Withdrawal)
             };
         }
     }

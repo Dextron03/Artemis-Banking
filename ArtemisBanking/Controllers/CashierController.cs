@@ -16,17 +16,63 @@ namespace ArtemisBanking.Controllers
     public class CashierController : Controller
     {
         private readonly ICashierService _cashierService;
+        private readonly IDashboardService _dashboardService;
 
-        public CashierController(ICashierService cashierService)
+        public CashierController(ICashierService cashierService, IDashboardService dashboardService)
         {
             _cashierService = cashierService;
+            _dashboardService = dashboardService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            // Retornará una vista vacía, 
-            // luego pondremos el Dashboard del Cajero aquí.
-            return View(); 
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var dashboard = await _dashboardService.GetCashierDashboardAsync(userId);
+            return View(dashboard);
+        }
+
+        [HttpGet]
+        public IActionResult CardPayment()
+        {
+            return View(new CardPaymentViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CardPayment(CardPaymentViewModel vm)
+        {
+            if (!ModelState.IsValid) return View(vm);
+
+            var confirmVm = await _cashierService.ValidateCardPaymentAsync(vm);
+
+            if (confirmVm == null)
+            {
+                ModelState.AddModelError("", "La información de la cuenta o tarjeta no es válida.");
+                return View(vm);
+            }
+
+            if (confirmVm.HasInsufficientFunds)
+            {
+                ModelState.AddModelError("", "La cuenta de origen no tiene fondos suficientes.");
+                return View(vm);
+            }
+
+            return View("ConfirmCardPayment", confirmVm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessCardPayment(ConfirmCardPaymentViewModel vm)
+        {
+            var result = await _cashierService.ProcessCardPaymentAsync(vm.OriginAccountNumber, vm.CardNumber, vm.Amount);
+
+            if (!result)
+            {
+                ModelState.AddModelError("", "Ocurrió un error al procesar el pago de la tarjeta.");
+                return View("ConfirmCardPayment", vm);
+            }
+
+            return RedirectToAction("Index");
         }
 
         [HttpGet]
@@ -180,11 +226,11 @@ namespace ArtemisBanking.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProcessPayment(ConfirmPaymentViewModel vm)
         {
-            var result = await _cashierService.ProcessPaymentAsync(vm.LoanId, vm.Amount);
+            var result = await _cashierService.ProcessPaymentAsync(vm.OriginAccountNumber, vm.LoanId, vm.Amount);
 
             if (!result)
             {
-                ModelState.AddModelError("", "Ocurrió un error al procesar el pago del préstamo.");
+                ModelState.AddModelError("", "Ocurrió un error al procesar el pago del préstamo (posibles fondos insuficientes).");
                 return View("ConfirmPayment", vm);
             }
 

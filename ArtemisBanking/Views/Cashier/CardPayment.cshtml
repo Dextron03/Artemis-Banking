@@ -1,14 +1,14 @@
-@model PaymentViewModel
+@model Application.ViewModels.Cashier.Payments.CardPaymentViewModel
 @{
-    ViewData["Title"] = "Realizar Pago";
+    ViewData["Title"] = "Pago de Tarjeta";
 }
 
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-warning text-dark fw-bold">
-                    <h4 class="mb-0"><i class="bi bi-credit-card"></i> Realizar Pago de Préstamo</h4>
+                <div class="card-header bg-primary text-white fw-bold">
+                    <h4 class="mb-0"><i class="bi bi-credit-card"></i> Pago de Tarjeta de Crédito</h4>
                 </div>
                 <div class="card-body bg-light">
                     @if (!ViewData.ModelState.IsValid)
@@ -18,28 +18,28 @@
                         </div>
                     }
 
-                    <form asp-controller="Cashier" asp-action="Payment" method="post">
+                    <form asp-controller="Cashier" asp-action="CardPayment" method="post">
                         
-                        <div class="mb-3">
-                            <label asp-for="LoanId" class="form-label fw-bold">Número de Préstamo</label>
-                            <input asp-for="LoanId" class="form-control" placeholder="Ej: 123456789" />
-                            <span asp-validation-for="LoanId" class="text-danger"></span>
-                        </div>
-
                         <div class="mb-3">
                             <label asp-for="OriginAccountNumber" class="form-label fw-bold">Número de Cuenta Origen</label>
                             <input asp-for="OriginAccountNumber" class="form-control" placeholder="Ej: 123456789" />
                             <span asp-validation-for="OriginAccountNumber" class="text-danger"></span>
                         </div>
 
+                        <div class="mb-3">
+                            <label asp-for="CardNumber" class="form-label fw-bold">Número de Tarjeta de Crédito</label>
+                            <input asp-for="CardNumber" class="form-control" placeholder="Ej: 1234123412341234" maxlength="16" />
+                            <span asp-validation-for="CardNumber" class="text-danger"></span>
+                        </div>
+
                         <div class="mb-4">
-                            <label asp-for="Amount" class="form-label fw-bold">Monto a abonar (RD$)</label>
+                            <label asp-for="Amount" class="form-label fw-bold">Monto a pagar (RD$)</label>
                             <input asp-for="Amount" type="number" step="0.01" class="form-control" placeholder="0.00" />
                             <span asp-validation-for="Amount" class="text-danger"></span>
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-warning text-dark fw-bold shadow-sm">Siguiente Paso</button>
+                            <button type="submit" class="btn btn-primary fw-bold shadow-sm">Validar Información</button>
                             <a asp-controller="Cashier" asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
                         </div>
                     </form>

@@ -5,11 +5,11 @@ using System.Threading.Tasks;
 
 namespace Application.ViewModels.Cashier.Payments
 {
-    public class ConfirmPaymentViewModel
+    public class ConfirmCardPaymentViewModel
     {
-        public string LoanId { get; set; }
         public string OriginAccountNumber { get; set; }
-        public string DisplayIdentifier { get; set; }
+        public string CardNumber { get; set; }
+        public string DisplayCardNumber { get; set; }
         public decimal Amount { get; set; }
         public string ClientName { get; set; }
         public string ClientLastName { get; set; }

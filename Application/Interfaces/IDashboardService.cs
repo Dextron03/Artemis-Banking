@@ -10,5 +10,6 @@ namespace Application.Interfaces
     public interface IDashboardService
     {
         Task<DashboardAdminDto> GetDashboardAsync();
+        Task<DashboardCashierDto> GetCashierDashboardAsync(string userId);
     }
 }

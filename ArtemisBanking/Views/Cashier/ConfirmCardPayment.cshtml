@@ -1,0 +1,48 @@
+@model Application.ViewModels.Cashier.Payments.ConfirmCardPaymentViewModel
+@{
+    ViewData["Title"] = "Confirmar Pago de Tarjeta";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-primary shadow-sm">
+                <div class="card-header bg-primary text-white fw-bold text-center">
+                    <h4 class="mb-0">Confirmar Pago de Tarjeta</h4>
+                </div>
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-4">¿Desea procesar este pago desde la cuenta de ahorros?</h5>
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger text-start">
+                            <div asp-validation-summary="All"></div>
+                        </div>
+                    }
+
+                    <div class="alert alert-info text-start shadow-sm border-primary">
+                        <p class="mb-1"><strong>Cliente:</strong> @Model.ClientName @Model.ClientLastName</p>
+                        <p class="mb-1"><strong>Tarjeta:</strong> @Model.DisplayCardNumber</p>
+                        <p class="mb-1"><strong>Cuenta Origen:</strong> @Model.OriginAccountNumber</p>
+                        <hr />
+                        <p class="mb-0 fs-5 fw-bold text-dark"><strong>Monto a pagar:</strong> RD$ @Model.Amount.ToString("N2")</p>
+                    </div>
+
+                    <form asp-controller="Cashier" asp-action="ProcessCardPayment" method="post">
+                        <input type="hidden" asp-for="OriginAccountNumber" />
+                        <input type="hidden" asp-for="CardNumber" />
+                        <input type="hidden" asp-for="DisplayCardNumber" />
+                        <input type="hidden" asp-for="Amount" />
+                        <input type="hidden" asp-for="ClientName" />
+                        <input type="hidden" asp-for="ClientLastName" />
+                        
+                        <div class="d-grid gap-2 mt-4 d-md-flex justify-content-md-center">
+                            <button type="submit" class="btn btn-success px-4 fw-bold shadow">Procesar Pago</button>
+                            <a asp-controller="Cashier" asp-action="Index" class="btn btn-outline-secondary px-4">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
