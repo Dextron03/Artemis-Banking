@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  mvcapp:
+    container_name: "artemis_banking" 
+
+    build:
+      context: .
+      dockerfile: "./Dockerfile"
+    ports:
+      - 8000:8080
+    env_file:
+      - path: .env
+
+    volumes:
+      - vol-artemis-banking:/app/archivos
+    networks:
+      - net-artemis-banking
+    depends_on:
+      - db
+  
+  db:
+    container_name: db_sqlserver
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - 1433:1433
+    environment:
+      - MSSQL_PID=Express
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - vol-sql-data:/var/opt/mssql
+    networks:
+      - net-artemis-banking
+
+    
+    
+
+networks:
+  net-artemis-banking:
+
+volumes:
+  vol-sql-data:
+  vol-artemis-banking:

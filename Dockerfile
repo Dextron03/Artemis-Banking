@@ -19,7 +19,7 @@ RUN dotnet publish "ArtemisBanking.csproj" -c Release -o /app/publish /p:UseAppH
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS final
 WORKDIR /app
-EXPOSE 8080
+EXPOSE 8000
 
 COPY --from=publish /app/publish .
 ENTRYPOINT [ "dotnet", "ArtemisBanking.csproj" ]
